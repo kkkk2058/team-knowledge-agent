@@ -1,0 +1,98 @@
+# 모순(드리프트) 정답셋 후보 (2026-09-28)
+#
+# - 사람이 직접 대조해서 찾은 것들이다. v1 모순 리포트가 이것들을 스스로 찾는지(재현율)로 검증한다.
+# - 각 항목이 진짜 문제인지, 의도된 차이인지는 해당 파트에 확인해야 한다 (status).
+# - lines는 meta.refs 기준 줄 번호다.
+# - 필드 이름과 구조는 예시다. 바꿔도 된다.
+
+meta:
+  checked_at: 2026-09-28
+  refs:
+    wiki_branch: "KTB4-13th-wiki @ ddfba15 (docs/fs-1-4-conversion)"
+    be_main: "KTB4-13th-BE @ f32eb67 (main, 2026-09-28)"
+  kinds:
+    문서-문서: 서로 다른 문서가 같은 주제에 다른 값을 말함
+    범위 누락: 한 문서가 전제하는 것이 다른 문서에 없음
+    문서-코드: 명세와 구현이 다름 (v2부터 탐지 가능)
+    문서 내부: 한 문서 안에서 서로 다름
+    메타: 문서 상태 표기가 서로 다름
+
+cases:
+  - id: d01
+    kind: 문서-문서
+    detect_stage: v1
+    topic: API 공통 응답 형식
+    a: { path: docs/dec/000-decision-log.md, lines: "26", value: "FS·AI 공통 {message, data}" }
+    b: { path: docs/fs/2-api/spec.md, lines: "15-21", value: "{ result, data, error }" }
+    note: 결정 로그 행에 "형식 변경 시 이 로그에 추가"라고 돼 있지만 변경 기록이 없다
+    confirm_with: [FS, AI]
+    status: 후보
+
+  - id: d02
+    kind: 범위 누락
+    detect_stage: v1
+    topic: 검색·추천·챗봇의 FE→BE 경로
+    a: { path: docs/ai/1-model-api/spec.md, lines: "26-37", value: "①③④를 BE가 호출한다" }
+    b: { path: docs/fs/2-api/spec.md, lines: "11", value: "12개 도메인 40개 엔드포인트에 검색·추천·챗봇 없음" }
+    c: { repo: KTB4-13th-BE, ref: be_main, path: src/main/java/com/book/core/recommendation/api/RecommendationController.java, lines: "28-46", value: "POST /api/v1/recommend/chat, GET /api/v1/recommend/cards/{recommendationCardId} 구현됨" }
+    note: 2026-09-28 BE 코드에 챗봇 API가 생겨 "코드에는 있는데 FS-2 명세에는 없는 API"가 됐다 (문서-코드 성격도 가짐)
+    confirm_with: [FS, AI]
+    status: 후보
+
+  - id: d03
+    kind: 문서-문서
+    detect_stage: v1
+    topic: 배송 조회
+    a: { path: docs/ai/1-model-api/spec.md, lines: "54", value: "V2 tool delivery.track(배송 조회)" }
+    b: { path: docs/fs/4-business-policy/spec.md, lines: "46", value: "실제 배송·상품 회수·정산은 제외" }
+    note: V2 기능이라 의도된 차이일 수 있다
+    confirm_with: [FS, AI]
+    status: 후보
+
+  - id: d04
+    kind: 문서-코드
+    detect_stage: v2
+    topic: API 명세 대비 구현
+    a: { path: docs/fs/2-api/spec.md, lines: "", value: "12개 도메인 (인증·회원·온보딩·상품·배송지·장바구니·주문·결제·쿠폰·포인트·리뷰·알림)" }
+    b: { repo: KTB4-13th-BE, ref: be_main, path: "src/main/java/com/book/core/*/api/*Controller.java", value: "컨트롤러 10개 (address, auth, cart, category, onboarding, order, product, product list, recommendation, review)" }
+    note: >-
+      파일명 기준. 회원·결제·쿠폰·포인트·알림 컨트롤러가 없고, recommendation은 FS-2에 없다.
+      930370f(09-27)에는 8개였고 f32eb67(09-28)에 onboarding·recommendation이 추가됐다.
+      개발 진행 중이라 미구현일 수 있다
+    confirm_with: [FS]
+    status: 후보
+
+  - id: d05
+    kind: 문서 내부
+    detect_stage: v1
+    topic: users.active_flag 생성 컬럼 방식
+    a: { path: docs/fs/1-table-spec/spec.md, lines: "22", value: "STORED" }
+    b: { path: docs/fs/1-table-spec/spec.md, lines: "55", value: "VIRTUAL" }
+    confirm_with: [FS]
+    status: 후보
+
+  - id: d06
+    kind: 메타
+    detect_stage: v1
+    topic: FS-4 문서 상태
+    a: { path: docs/fs/4-business-policy/spec.md, lines: "6", value: "frontmatter status: 작성중" }
+    b: { path: docs/fs/4-business-policy/spec.md, lines: "19", value: "본문: 최종본" }
+    note: frontmatter status는 작성 상태라 의도된 차이일 수 있다
+    confirm_with: [FS]
+    status: 후보
+
+  - id: d07
+    kind: 문서 내부
+    detect_stage: v1
+    topic: AI가 받는 BE 복제 테이블 목록
+    a: { path: docs/ai/9-data-erd/spec.md, lines: "19", value: "v_books, v_book_popularity, v_user_purchases, v_user_library, v_user_reviews (v_products 없음)" }
+    b: { path: docs/ai/9-data-erd/spec.md, lines: "68, 262", value: "v_products 정의 (09-25 결정, AI #208)" }
+    confirm_with: [AI]
+    status: 후보
+
+withdrawn:
+  - id: w01
+    topic: BE 시각 컬럼 해석 시간대
+    claimed: "AI ERD의 DATETIME/TIMESTAMP 미확정 항목의 답이 FS-1에 있다. 복제 시 UTC로 해석해야 한다"
+    why_withdrawn: "AI ERD 311행에 이미 '결정 완료: DATETIME(6), 한국 시간 저장'이 있고 87행은 Asia/Seoul로 해석한다. 옛 메모를 믿고 쓴 오류"
+    lesson: 사람이 찾은 모순도 원문으로 재확인해야 한다. 모순 리포트의 정밀도 측정이 필요한 이유
