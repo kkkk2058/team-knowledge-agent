@@ -13,7 +13,7 @@
 | 소스 | wiki 레포 `docs/` ([config/ktb13.yaml](config/ktb13.yaml)) |
 | 기준 커밋 | wiki `4f6a6a6`. 평가는 브랜치가 아니라 고정 커밋으로 한다 |
 | 입구 | CLI 하나 |
-| 평가 | 골든셋 20문항, 베이스라인 2개 (Claude Code, DeepWiki) |
+| 평가 | 골든셋 20문항(튜닝용), 베이스라인 Claude Code 새 세션. 최종 비교는 따로 모은 채점용 질문으로 |
 
 v0에서 하지 않는 것: 코드 읽기, 다른 레포 문서, 이슈·PR, 쓰기 행동. 단계별 계획은 [docs/plan.md](docs/plan.md) §4, 구현 순서는 [docs/implementation.md](docs/implementation.md) §4.
 
@@ -26,6 +26,7 @@ uv run ruff check
 ```
 
 - 소스 레포 캐시(`.cache/`)와 인덱스(`data/`)는 커밋하지 않는다. 소스 문서는 항상 원본 레포에서 가져온다.
+- `.env`에는 OpenRouter 키(`OPENROUTER_API_KEY`)를 넣는다 (답변 단계부터 필요). 커밋하지 않는다.
 
 ### 골든셋 검사
 
@@ -48,13 +49,12 @@ git clone https://github.com/100-hours-a-week/KTB4-13th-wiki /tmp/tka-baseline/K
 git -C /tmp/tka-baseline/KTB4-13th-wiki checkout 4f6a6a6
 uv run python -m tka.baseline --repo-dir /tmp/tka-baseline/KTB4-13th-wiki
 
-# DeepWiki처럼 손으로 묻는 시스템: 질문이 적힌 틀을 만들고 답을 붙여 넣는다
+# 손으로 묻는 시스템(예: DeepWiki, 선택): 질문이 적힌 틀을 만들고 답을 붙여 넣는다
 uv run python -m tka.evaluation template eval/results/<날짜>-deepwiki --system deepwiki
 
 # scores.yaml을 채운 뒤 요약
 uv run python -m tka.evaluation summary eval/results/<run>
 ```
-- `.env`에는 LLM 키를 넣는다 (답변 단계부터 필요). 커밋하지 않는다.
 
 ## 문서
 

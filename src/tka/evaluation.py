@@ -41,6 +41,8 @@ PROMPT_TEMPLATE = (
     "문서에 근거가 없으면 모른다고 답해."
 )
 VERDICTS = {"정답": 1.0, "부분": 0.5, "오답": 0.0}
+# 틀린 답 유형 (plan.md §4-1). 무엇을 고쳤더니 어떤 유형이 줄었는지 보려고 모은다.
+FAILURES = ("근거 못 찾음", "근거 찾고 틀림", "폐기 내용 인용", "지어냄")
 # 인용한 줄이 골든셋 근거 줄에서 이만큼 떨어져 있어도 같은 곳으로 본다 (표·목록은 몇 줄에 걸친다).
 LINE_TOLERANCE = 3
 
@@ -144,6 +146,14 @@ class Answer:
     id: str
     answer: str
     error: str | None
+    meta: dict[str, Any]  # duration_ms, cost_usd 등. 손으로 채운 답이면 비어 있다
+
+
+@dataclass(frozen=True)
+class Score:
+    verdict: str  # 정답 · 부분 · 오답
+    failure: str | None  # 틀린 답 유형 (FAILURES)
+    reason: str | None
 
 
 @dataclass(frozen=True)
@@ -161,7 +171,9 @@ def load_run(run_dir: Path) -> Run:
     for i, a in enumerate(raw.get("answers") or []):
         if not isinstance(a, dict) or not isinstance(a.get("id"), str):
             raise ResultError(f"answers[{i}]: id가 없다")
-        answers[a["id"]] = Answer(a["id"], str(a.get("answer") or ""), a.get("error"))
+        answers[a["id"]] = Answer(
+            a["id"], str(a.get("answer") or ""), a.get("error"), dict(a.get("meta") or {})
+        )
     return Run(
         run_id=str(raw.get("run_id") or run_dir.name),
         system=str(raw.get("system") or "?"),
@@ -171,7 +183,7 @@ def load_run(run_dir: Path) -> Run:
     )
 
 
-def load_scores(run_dir: Path) -> dict[str, str]:
+def load_scores(run_dir: Path) -> dict[str, Score]:
     """id → 판정. scores.yaml이 없으면 빈 dict (아직 채점 전)."""
     path = run_dir / "scores.yaml"
     if not path.exists():
@@ -179,10 +191,17 @@ def load_scores(run_dir: Path) -> dict[str, str]:
     raw = _load_yaml(path)
     scores = {}
     for i, s in enumerate(raw.get("items") or []):
-        verdict = s.get("verdict") if isinstance(s, dict) else None
+        where = f"scores items[{i}]"
+        if not isinstance(s, dict) or not isinstance(s.get("id"), str):
+            raise ResultError(f"{where}: id가 없다")
+        verdict, failure = s.get("verdict"), s.get("failure")
         if verdict not in VERDICTS:
-            raise ResultError(f"scores items[{i}]: verdict는 {'·'.join(VERDICTS)} 중 하나다")
-        scores[s["id"]] = verdict
+            raise ResultError(f"{where}: verdict는 {'·'.join(VERDICTS)} 중 하나다")
+        if failure is not None and failure not in FAILURES:
+            raise ResultError(f"{where}: failure는 {'·'.join(FAILURES)} 중 하나다")
+        if verdict == "정답" and failure is not None:
+            raise ResultError(f"{where}: 정답에는 failure를 적지 않는다")
+        scores[s["id"]] = Score(verdict, failure, s.get("reason"))
     return scores
 
 
@@ -220,8 +239,12 @@ def _load_yaml(path: Path) -> dict:
 class ItemResult:
     item: GoldenItem
     answer: Answer | None
-    verdict: str | None
+    score: Score | None
     citations: list[CitationCheck]
+
+    @property
+    def verdict(self) -> str | None:
+        return self.score.verdict if self.score else None
 
     @property
     def cited_evidence(self) -> bool:
@@ -235,7 +258,7 @@ class ItemResult:
 def evaluate(
     golden: GoldenSet,
     run: Run,
-    scores: dict[str, str],
+    scores: dict[str, Score],
     config: Config,
     root: Path,
     version: str = "v0",
@@ -279,11 +302,22 @@ def render_summary(run: Run, results: list[ItemResult]) -> str:
     accuracy = pct(sum(VERDICTS[r.verdict] for r in scored), len(scored))
     citation_accuracy = pct(sum(c.exists for c in all_citations), len(all_citations))
     evidence_hits = pct(sum(r.cited_evidence for r in with_evidence), len(with_evidence))
+    answered = [r for r in results if r.has_answer]
+    costs = [
+        r.answer.meta["cost_usd"] for r in answered if r.answer.meta.get("cost_usd") is not None
+    ]
+    times = [r.answer.meta["duration_ms"] for r in answered if r.answer.meta.get("duration_ms")]
+    detail = {k: v for k, v in run.detail.items() if k != "prompt_template"}
+    avg_cost = f"${sum(costs) / len(costs):.3f}" if costs else "—"
+    avg_time = f"{sum(times) / len(times) / 1000:.1f}초" if times else "—"
     lines = [
         f"# {run.run_id}",
         "",
         f"- 시스템: {run.system}",
-        *[f"- {k}: {v}" for k, v in run.detail.items()],
+        *[
+            f"- {k}: {', '.join(map(str, v)) if isinstance(v, list) else v}"
+            for k, v in detail.items()
+        ],
         f"- 소스: {', '.join(f'{r} @ {c}' for r, c in run.source_commits.items())}",
         "",
         "## 요약",
@@ -295,6 +329,8 @@ def render_summary(run: Run, results: list[ItemResult]) -> str:
         f"| 인용 정확도 (인용한 파일·줄이 실제로 있음) | {citation_accuracy} |",
         f"| 근거 적중 (골든셋 근거 줄을 인용한 문항) | {evidence_hits} |",
         f"| 답이 없는 문항 (오류 포함) | {sum(1 for r in results if not r.has_answer)} |",
+        f"| 질문당 평균 비용 | {avg_cost} |",
+        f"| 질문당 평균 응답 시간 | {avg_time} |",
         "",
         "## 유형별 정답률",
         "",
@@ -304,6 +340,10 @@ def render_summary(run: Run, results: list[ItemResult]) -> str:
     for kind in dict.fromkeys(r.item.type for r in results):
         rows = [r for r in scored if r.item.type == kind]
         lines.append(f"| {kind} | {pct(sum(VERDICTS[r.verdict] for r in rows), len(rows))} |")
+    failures = [r.score.failure for r in scored if r.score and r.score.failure]
+    if failures:
+        lines += ["", "## 틀린 답 유형", "", "| 유형 | 문항 수 |", "|---|---|"]
+        lines += [f"| {f} | {failures.count(f)} |" for f in FAILURES if f in failures]
     lines += [
         "",
         "## 문항별",
@@ -319,6 +359,8 @@ def render_summary(run: Run, results: list[ItemResult]) -> str:
             else ("O" if r.cited_evidence else "X")
         )
         lines.append(f"| {r.item.id} | {r.item.type} | {r.verdict or '미채점'} | {cites} | {hit} |")
+    if "prompt_template" in run.detail:
+        lines += ["", "## 질문 형식", "", "```text", str(run.detail["prompt_template"]), "```"]
     return "\n".join(lines) + "\n"
 
 

@@ -127,14 +127,22 @@ def test_summary_counts_verdicts_citations_and_types(tmp_path, source):
     run_dir = _run_dir(
         tmp_path,
         [
-            {"id": "g01", "answer": "e5-small (docs/a.md:3)"},
-            {"id": "g02", "answer": "틀린 답 docs/a.md:99"},
+            {
+                "id": "g01",
+                "answer": "e5-small (docs/a.md:3)",
+                "meta": {"cost_usd": 0.2, "duration_ms": 20000},
+            },
+            {
+                "id": "g02",
+                "answer": "틀린 답 docs/a.md:99",
+                "meta": {"cost_usd": 0.1, "duration_ms": 10000},
+            },
             {"id": "g03", "answer": "", "error": "시간 초과"},
         ],
         [
             {"id": "g01", "verdict": "정답"},
-            {"id": "g02", "verdict": "부분"},
-            {"id": "g03", "verdict": "오답"},
+            {"id": "g02", "verdict": "부분", "failure": "폐기 내용 인용"},
+            {"id": "g03", "verdict": "오답", "failure": "근거 못 찾음"},
         ],
     )
 
@@ -147,6 +155,9 @@ def test_summary_counts_verdicts_citations_and_types(tmp_path, source):
     assert "| 답이 없는 문항 (오류 포함) | 1 |" in summary
     assert "| 함정 | 50% (0.5/1) |" in summary
     assert "| g03 | 모름 | 오답 | 0/0 | — |" in summary
+    assert "| 질문당 평균 비용 | $0.150 |" in summary  # 오류 문항은 빼고 평균
+    assert "| 질문당 평균 응답 시간 | 15.0초 |" in summary
+    assert "| 폐기 내용 인용 | 1 |" in summary and "| 근거 못 찾음 | 1 |" in summary
 
 
 def test_summary_before_scoring(tmp_path, source):
@@ -160,6 +171,21 @@ def test_summary_before_scoring(tmp_path, source):
 
     assert "| 채점한 문항 | 0/1 |" in summary
     assert "| g01 | 명세 값 | 미채점 |" in summary
+
+
+@pytest.mark.parametrize(
+    ("score", "message"),
+    [
+        ({"id": "g01", "verdict": "오답", "failure": "모름"}, "failure는 근거 못 찾음"),
+        ({"id": "g01", "verdict": "정답", "failure": "지어냄"}, "정답에는 failure를 적지 않는다"),
+        ({"verdict": "정답"}, "id가 없다"),
+    ],
+)
+def test_bad_failure_rejected(tmp_path, score, message):
+    run_dir = _run_dir(tmp_path, [], [score])
+
+    with pytest.raises(ResultError, match=message):
+        load_scores(run_dir)
 
 
 def test_bad_verdict_rejected(tmp_path):
