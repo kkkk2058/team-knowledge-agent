@@ -28,13 +28,18 @@ uv run ruff check
 - 소스 레포 캐시(`.cache/`)와 인덱스(`data/`)는 커밋하지 않는다. 소스 문서는 항상 원본 레포에서 가져온다.
 - `.env`에는 OpenRouter 키(`OPENROUTER_API_KEY`)를 넣는다 (답변 단계부터 필요). 커밋하지 않는다.
 
-### 골든셋 검사
-
-소스를 기준 커밋으로 받아 둔 뒤 검사한다. 가져오기 명령은 3단계에서 생긴다.
+### 소스 가져오기
 
 ```bash
-git clone https://github.com/100-hours-a-week/KTB4-13th-wiki .cache/sources/wiki
-git -C .cache/sources/wiki checkout 4f6a6a6
+uv run python -m tka.ingest fetch    # 설정의 소스 레포를 .cache/sources/에 받아 기준 커밋으로 맞춘다
+uv run python -m tka.ingest files    # 포함 규칙으로 고른 파일 수 (wiki 4f6a6a6: 34개). --list로 목록
+```
+
+캐시에 로컬 수정이 있으면 덮어쓰지 않고 멈춘다. 캐시 폴더를 지우고 다시 받으면 된다.
+
+### 골든셋 검사
+
+```bash
 uv run python -m tka.golden check    # 근거 줄·포함 규칙·모름 문항 검사
 uv run python -m tka.golden review   # 정답 확인 시트 → data/golden_review.md
 ```

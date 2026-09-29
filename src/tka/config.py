@@ -39,12 +39,13 @@ class Source:
         """
         return (
             path.endswith(self.extensions)
-            and any(_matches(path, rule) for rule in self.include)
-            and not any(_matches(path, rule) for rule in self.exclude)
+            and any(matches_rule(path, rule) for rule in self.include)
+            and not any(matches_rule(path, rule) for rule in self.exclude)
         )
 
 
-def _matches(path: str, rule: str) -> bool:
+def matches_rule(path: str, rule: str) -> bool:
+    """`/`로 끝나는 규칙은 폴더, 아니면 파일 하나."""
     return path.startswith(rule) if rule.endswith("/") else path == rule
 
 

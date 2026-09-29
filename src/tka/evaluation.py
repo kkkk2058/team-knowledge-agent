@@ -25,15 +25,9 @@ from typing import Any
 import yaml
 
 from tka.config import Config, load_config
-from tka.golden import (
-    GoldenItem,
-    GoldenSet,
-    checkout_problem,
-    load_golden,
-    read_lines,
-    source_dir,
-    tracked_files,
-)
+from tka.golden import GoldenItem, GoldenSet, load_golden
+from tka.ingest.fetch import checkout_problem, source_dir, tracked_files
+from tka.ingest.files import read_lines
 
 PROMPT_TEMPLATE = (
     "{question}\n\n"
