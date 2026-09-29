@@ -2,16 +2,16 @@
 
 북적북적 팀(KTB4-13th) 레포 5개(AI·BE·FE·CLOUD·wiki)의 문서와 코드를 근거로 팀 질문에 답하는 팀 전용 지식 에이전트.
 
-현재 단계: **v0 진행 중** — 0단계 프로젝트 기본 설정 (2026-09-30). v0 범위 = wiki 레포 `docs/`만, 입구는 CLI 하나.
+현재 단계: **v0 진행 중** — 1단계 골든셋, 정답 확인 대기 (2026-09-30). v0 범위 = wiki 레포 `docs/`만, 입구는 CLI 하나.
 
 ## 먼저 읽을 문서
 
-- [docs/context.md](docs/context.md) — 소스 레포 구조, 문서 복사 흐름, 인덱싱 포함·제외 규칙, 서비스 핵심 결정, 골든셋 후보. **사실마다 확인일이 있다.**
+- [docs/context.md](docs/context.md) — 소스 레포 구조, 문서 복사 흐름, 인덱싱 포함·제외 규칙, 서비스 핵심 결정, 모순 사례. **사실마다 확인일이 있다.**
 - [docs/plan.md](docs/plan.md) — 목표와 차별점, 개발 중 활용 시나리오(§1-1), 설계 결정과 근거, 단계별 로드맵, 1주차 체크리스트, 함정, 열린 질문, 참고 사례(§9), 바뀐 결정(§10).
 - [docs/implementation.md](docs/implementation.md) — 기술 선택, 코드 구조, 테이블, 단계별 구현 방법·함정·완료 기준, PR 단위 구현 순서.
 - [docs/links.md](docs/links.md) — 소스 레포, 핵심 문서, 동기화 워크플로, 코드 위치, 관련 이슈·PR, 베이스라인, 구현 참고 자료, 조사 자료 링크 전부.
-- [eval/golden_candidates.yaml](eval/golden_candidates.yaml) — 골든셋 후보 17개 (근거 경로·줄 포함, 정답은 직접 확정).
-- [eval/drift_cases.yaml](eval/drift_cases.yaml) — 모순 정답셋 후보 7개 + 철회 1개.
+- [eval/golden.yaml](eval/golden.yaml) — 골든셋. v0 20문항, wiki `4f6a6a6` 기준 근거 줄 포함. 정답은 레포 주인이 확인한다.
+- [eval/drift_cases.yaml](eval/drift_cases.yaml) — 모순 정답셋 후보 8개 + 철회 1개.
 
 **소스 문서를 이 레포에 복사하지 않는다.** 같은 문서가 이미 5벌이다(context.md §3). 소스는 항상 원본 레포에서 가져온다.
 

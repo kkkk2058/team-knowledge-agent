@@ -108,6 +108,42 @@ def test_yaml_syntax_error_is_config_error(tmp_path):
         load_config(path)
 
 
+@pytest.mark.parametrize(
+    ("path", "included"),
+    [
+        ("docs/ai/1-model-api/spec.md", True),
+        ("docs/README.md", True),
+        (".agents/skills/ktb4-docs/references/decisions.md", True),
+        ("docs/_preserve-overrides.tsv", False),  # 확장자
+        ("docs/inbox/ai/x.md", False),  # 포함 규칙 밖
+        ("backup/wiki-original-2026-09-17/x.md", False),
+        (".agents/skills/ktb4-docs/SKILL.md", False),  # 파일 하나만 포함
+        ("docs/aix/x.md", False),  # 폴더 규칙은 접두어가 아니라 폴더로 맞춘다
+    ],
+)
+def test_team_config_include_rules(path, included):
+    wiki = load_config(TEAM_CONFIG).sources[0]
+
+    assert wiki.includes(path) is included
+
+
+def test_exclude_wins_over_include(tmp_path):
+    data = _valid()
+    data["sources"][0]["include"] = ["docs/"]
+    data["sources"][0]["exclude"] = ["docs/inbox/"]
+    source = load_config(_write(tmp_path, data)).sources[0]
+
+    assert source.includes("docs/a.md")
+    assert not source.includes("docs/inbox/a.md")
+
+
+def test_source_for_repo(tmp_path):
+    config = load_config(_write(tmp_path, _valid()))
+
+    assert config.source_for_repo("wiki").name == "wiki"
+    assert config.source_for_repo("BE") is None
+
+
 def test_missing_file_is_not_config_error(tmp_path):
     with pytest.raises(FileNotFoundError):
         load_config(tmp_path / "없음.yaml")
