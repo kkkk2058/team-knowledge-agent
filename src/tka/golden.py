@@ -3,14 +3,13 @@
     uv run python -m tka.golden check    근거 줄·포함 규칙·모름 문항을 검사한다
     uv run python -m tka.golden review   확인용 시트(근거 줄 원문 포함)를 data/에 만든다
 
-검사하려면 소스 레포가 설정의 cache_dir 아래에 기준 커밋으로 받아져 있어야 한다.
+검사하려면 소스 레포를 먼저 받아 둔다: uv run python -m tka.ingest fetch
 """
 
 from __future__ import annotations
 
 import argparse
 import re
-import subprocess
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -20,6 +19,8 @@ from typing import Any
 import yaml
 
 from tka.config import COMMIT_PATTERN, Config, Source, load_config
+from tka.ingest.fetch import checkout_problem, source_dir, tracked_files
+from tka.ingest.files import read_lines
 
 TYPES = (
     "명세 값",
@@ -229,21 +230,6 @@ def _choice(raw: dict, key: str, choices: Sequence[str], where: str) -> str:
 # ── 원문 대조 ─────────────────────────────────────────────────────
 
 
-def source_dir(config: Config, root: Path, source: Source) -> Path:
-    return root / config.cache_dir / source.name
-
-
-def read_lines(path: Path) -> list[str]:
-    """줄 번호가 git·에디터와 같도록 `\\n`으로만 나눈다.
-
-    str.splitlines()는 U+2028·폼피드 같은 문자에서도 줄을 나눠 줄 번호가 어긋난다.
-    """
-    lines = path.read_text(encoding="utf-8").split("\n")
-    if lines and lines[-1] == "":
-        lines.pop()
-    return [line.removesuffix("\r") for line in lines]
-
-
 def check_golden(golden: GoldenSet, config: Config, root: Path) -> CheckResult:
     problems: list[Problem] = []
     checked: list[str] = []
@@ -284,24 +270,6 @@ def check_golden(golden: GoldenSet, config: Config, root: Path) -> CheckResult:
         checked=tuple(checked),
         skipped={repo: tuple(dict.fromkeys(ids)) for repo, ids in skipped.items()},
     )
-
-
-def checkout_problem(directory: Path, source: Source) -> str | None:
-    fetch_hint = (
-        f"받는 법: git clone https://github.com/{source.repo} {directory}"
-        f" && git -C {directory} checkout {source.ref}"
-    )
-    if not directory.is_dir():
-        return f"{source.repo_name}: 소스가 없다 ({directory}). {fetch_hint}"
-    if not (directory / ".git").exists():
-        return f"{source.repo_name}: git 저장소가 아니다 ({directory})"
-    head = _git(directory, "rev-parse", "HEAD").strip()
-    if not head.startswith(source.ref):
-        return (
-            f"{source.repo_name}: 받아 둔 소스가 기준 커밋이 아니다 "
-            f"(HEAD {head[:7]}, 기준 {source.ref}). git -C {directory} checkout {source.ref}"
-        )
-    return None
 
 
 def _evidence_problems(
@@ -353,16 +321,6 @@ def _absent_problems(
                         )
                     )
     return problems
-
-
-def tracked_files(directory: Path) -> set[str]:
-    return set(filter(None, _git(directory, "ls-files", "-z").split("\0")))
-
-
-def _git(directory: Path, *args: str) -> str:
-    return subprocess.run(
-        ["git", "-C", str(directory), *args], check=True, capture_output=True, text=True
-    ).stdout
 
 
 # ── 확인용 시트 ───────────────────────────────────────────────────

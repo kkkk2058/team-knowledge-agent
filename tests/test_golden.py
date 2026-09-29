@@ -236,7 +236,7 @@ def test_missing_checkout_tells_how_to_fetch(tmp_path, source):
     result = check_golden(golden, config, other)
 
     assert "소스가 없다" in str(result.problems[0])
-    assert "git clone https://github.com/org/wiki" in str(result.problems[0])
+    assert "uv run python -m tka.ingest fetch" in str(result.problems[0])
 
 
 def test_golden_commit_must_match_config_ref(tmp_path, source):
