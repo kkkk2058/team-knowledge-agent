@@ -76,3 +76,66 @@ def make_wiki_source(root: Path) -> tuple[Config, str]:
         ),
     )
     return config, commit
+
+
+DECISION_LOG = """---
+wiki: DEC-000 결정 로그
+---
+**요약** 입구.
+
+| 날짜 | 파트 | 결정 | 영향 파트 | 상세 |
+|---|---|---|---|---|
+| 09-28 | AI | ④ 피드는 GET으로 부른다 | AI, BE | [모델 API 명세](../ai/spec.md#feed) |
+| 09-21 | AI | ③⑤ LangChain 도입 (V1 미도입 번복) | AI | [설계](../ai/design.md) |
+| 09-17 | FS·AI | 공통 응답 `{message, data}` | FS, AI | 형식 변경 시 이 로그에 추가 |
+| 09-10 | CLD | 배포는 Recreate | - | [팀](../../.agents/team.md) |
+"""
+
+SUPERSEDES = """corrections:
+  - date: "09-21"
+    contains: LangChain
+    replaces: V1은 LangChain을 쓰지 않는다
+    old_text_at: [docs/ai/design.md:2]
+"""
+
+
+def make_decision_repo(path: Path, log: str = DECISION_LOG) -> str:
+    """결정 로그가 든 작은 wiki 저장소를 path에 만들고 커밋 해시를 돌려준다."""
+    (path / "docs" / "dec").mkdir(parents=True)
+    (path / "docs" / "ai").mkdir(parents=True)
+    (path / ".agents").mkdir()
+    (path / "docs" / "dec" / "log.md").write_text(log, encoding="utf-8")
+    (path / "docs" / "ai" / "spec.md").write_text("# 명세\n④ GET\n", encoding="utf-8")
+    (path / "docs" / "ai" / "design.md").write_text("# 설계\n옛: 미도입\n새: 도입\n")
+    (path / ".agents" / "team.md").write_text("팀 결정\n", encoding="utf-8")
+    git(path, "init", "-q", "-b", "main")
+    git(path, "add", ".")
+    git(path, "commit", "-q", "-m", "init")
+    return git(path, "rev-parse", "HEAD")
+
+
+def decision_config(root: Path, commit: str, *, corrections: str | None = SUPERSEDES) -> Config:
+    from tka.config import DecisionsConfig
+
+    corrections_path = None
+    if corrections is not None:
+        corrections_path = Path("config/supersedes.yaml")
+        (root / "config").mkdir(exist_ok=True)
+        (root / corrections_path).write_text(corrections, encoding="utf-8")
+    source = Source(
+        name="wiki",
+        repo="org/wiki",
+        ref=commit[:7],
+        include=("docs/",),
+        exclude=(),
+        extensions=(".md",),
+    )
+    return Config(
+        team="t",
+        decision_log_year=2026,
+        cache_dir=Path(".cache/sources"),
+        index_path=Path("data/index.sqlite"),
+        sources=(source,),
+        decisions=DecisionsConfig("wiki", "docs/dec/log.md", corrections_path),
+        aliases=(("④", "feed", "피드"),),
+    )

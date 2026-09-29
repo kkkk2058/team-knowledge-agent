@@ -38,6 +38,19 @@ uv run python -m tka.ingest chunks   # 청크로 잘라 data/chunks.jsonl에 덤
 
 캐시에 로컬 수정이 있으면 덮어쓰지 않고 멈춘다. 캐시 폴더를 지우고 다시 받으면 된다.
 
+### 결정 표와 MCP
+
+```bash
+uv run python -m tka.decisions check              # 결정 표 행 수 = 로그 행 수, 링크·보정 검사
+uv run python -m tka.decisions find "LangChain"   # get_decision과 같은 결과를 터미널에서
+```
+
+본인 Claude Code에 연결한다 (user 범위, 모든 레포에서 쓴다). 서버는 최신 wiki main을 따라가고 호출을 `data/mcp_calls.jsonl`에 남긴다.
+
+```bash
+claude mcp add --scope user tka -- uv run --directory /path/to/team-knowledge-agent python -m tka.mcp_server
+```
+
 ### 골든셋 검사
 
 ```bash

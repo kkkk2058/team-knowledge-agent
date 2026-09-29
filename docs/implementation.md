@@ -74,10 +74,12 @@ eval/
 
 ### ③ 결정 표
 
-- 결정 로그(`docs/dec/000-decision-log.md`)는 `| 날짜 | 파트 | 결정 | 영향 파트 | 상세 |` 표다. 규칙으로 파싱한다. 2026-09-28 브랜치 기준 16행.
+- 결정 로그(`docs/dec/000-decision-log.md`)는 `| 날짜 | 파트 | 결정 | 영향 파트 | 상세 |` 표다. 마크다운 파서로 읽는다. `4f6a6a6` 기준 17행, 상세 링크 15개(링크 없는 칸 2개). 구현: `src/tka/decisions/table.py`, 검사: `python -m tka.decisions check`.
+- GFM 표는 모자란 칸을 빈 칸으로 채우므로 칸 수 대신 빈 칸(파트·결정)을 문제로 본다. 파서가 한글 링크를 `%EC…`로 바꾸므로 되돌려 비교한다.
 - 날짜에 **연도가 없다**(`09-21`). 연도는 설정값으로 붙인다.
 - 상세 링크는 상대 경로다(`../ai/...`, `../../.agents/...`). 레포 루트 기준 경로로 바꿔 저장한다. "클라우드 확인 대기"처럼 링크가 없는 행도 있다.
-- **"번복" 관계는 표에 칸이 없다.** 문구("번복" 등)로 일부만 잡히므로 수동 보정 파일(`supersedes.yaml` 같은 것)을 둔다. wiki 레포가 `_preserve-overrides.tsv`로 예외를 관리하는 방식과 같다. context.md §5의 "결정이 뒤집힌 이력" 표가 보정 파일의 첫 재료다.
+- **"번복" 관계는 표에 칸이 없다.** 문구("번복" 등)로 일부만 잡히므로 보정 파일 `config/ktb13-supersedes.yaml`을 둔다. wiki 레포가 `_preserve-overrides.tsv`로 예외를 관리하는 방식과 같다. 행은 날짜 + 결정 글에 든 말로 찾고, 딱 한 행이 맞아야 한다. 적는 것: 뒤집은 이전 결정(`replaces`), 옛 서술이 남은 곳(`old_text_at`, D15 ①), 로그 안에서 대체한 행(`superseded_by`).
+- context.md §5의 뒤집힌 결정 7개 중 결정 로그에 행이 있는 것은 3개(09-21 LangChain, 09-24 BM25, 09-15 book_passage)다. ④ feed GET(09-16), 임베딩 e5(09-16), 추천 이유 엔드포인트(09-08), DB 분리(09-08~09)는 로그에 없어서 `get_decision`이 모른다. D16(결정 누락 잡기)의 실제 사례다.
 - **완료 기준**: 결정 표 행 수 = 로그 행 수. 링크가 모두 실제 파일로 해석된다.
 
 ### ④ 검색
@@ -113,10 +115,12 @@ eval/
 
 ### ⑧ MCP (D14, D17)
 
-- `core.py`의 `get_decision`, `search_docs`를 MCP 도구로 감싼다. stdio 방식으로 본인 Claude Code에 user 범위로 등록한다(`claude mcp add --scope user --transport stdio ...`, links.md 참고).
+- `core.py`의 `get_decision`, `search_docs`를 MCP 도구로 감싼다(`src/tka/mcp_server.py`, MCP SDK 2.x의 `MCPServer`). stdio 방식으로 본인 Claude Code에 user 범위로 등록한다:
+  `claude mcp add --scope user tka -- uv run --directory <이 레포> python -m tka.mcp_server`
+- **실제 사용은 최신 main을 따른다.** 평가는 기준 커밋으로 고정하지만 코딩 중에는 신선도가 더 중요하다(plan.md §6). 부를 때 10분이 지났으면 `git ls-remote`로 main을 확인하고, 바뀌었으면 `.cache/live/`에 받아 다시 만든다. 확인에 실패하면 마지막 커밋 기준으로 답하고 그 사실을 알린다. `--pinned`면 기준 커밋 그대로다.
 - **도구는 답이 아니라 근거를 돌려준다**(D17): 조각 원문, 결정 상태, `레포/경로:줄@커밋` 인용, 인덱스 기준 커밋. 답 문장은 부르는 쪽이 쓴다.
 - **연결 시점은 도구별**(D14): `get_decision`은 결정 표가 로그와 맞으면 바로(5번 PR), `search_docs`는 recall@5가 기준을 넘으면(6번 PR).
-- 호출 로그(시각, 질문, 반환 청크, 답이 맞았나)를 남긴다. 틀린 답은 골든셋에 추가한다.
+- 호출 로그를 `data/mcp_calls.jsonl`에 남긴다(시각, 도구, 인자, 기준 커밋, 돌려준 근거 위치, 걸린 시간). 로그를 못 남겨도 답은 돌려준다. 틀린 답은 골든셋에 추가한다.
 - 도구 설명(description)이 호출 여부를 좌우한다. "팀 결정·명세·정책을 확인해야 할 때"처럼 **언제 불러야 하는지**를 쓴다.
 
 ## 4. 구현 순서 — 한 줄이 PR 하나
