@@ -119,36 +119,21 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 | 5 | 같은 문서 안 모순: FS-1에서 `active_flag`를 한 곳은 STORED, 다른 곳은 VIRTUAL 생성 컬럼이라고 한다 | `fs/1-table-spec/spec.md` 22행 · 55행 |
 | 6 | 상태 표기: FS-4 frontmatter `status: 작성중`, 본문은 "최종본" | `fs/4-business-policy/spec.md` |
 | 7 | 같은 문서 안 요약 누락 (후보): AI ERD 19행 "BE 복제" 요약에는 `v_books`, `v_book_popularity`, `v_user_*` 3종만 있고 `v_products`가 없다. 68행 표와 §3.11은 `v_products`를 정의한다(09-25 결정, AI #208) | `ai/9-data-erd/spec.md` 19행 · 68행 · 262행 |
+| 8 | 문서와 회의 기록: AI 문서는 V2 ⑤ 취향 추출을 야간 배치로 두고 메시지 큐는 선택지로 열어 뒀는데, 2026-09-22 타운홀(wiki #138) 클라우드 보고는 V2 AI를 "SQS Standard + DLQ 기반 비동기 처리"로 설계했다고 한다. 이슈를 소스로 넣어야 찾을 수 있다 (2026-09-30 확인, `4f6a6a6`) | `ai/3-architecture-modularization/design.md` 91행, `ai/8-final-integration/design.md` 243행, wiki #138 |
 
 모순처럼 보였지만 아닌 사례(BE 시각 컬럼 해석 시간대)는 [eval/drift_cases.yaml](../eval/drift_cases.yaml)의 `withdrawn`에 있다. 모순 리포트가 이런 오탐을 내지 않는지(정밀도) 확인하는 데 쓴다.
 
-## 6. 골든셋 후보 질문
+## 6. 골든셋
 
-근거 위치는 후보다. **정답은 직접 문서를 열어 확정한다.** 줄 번호와 예상 답까지 넣은 구조화 버전은 [eval/golden_candidates.yaml](../eval/golden_candidates.yaml)에 있다.
+[eval/golden.yaml](../eval/golden.yaml)에 있다. v0 20문항, wiki `4f6a6a6` 기준 줄 번호 (2026-09-30).
+유형: 명세 값 · 함정 · 결정 이유 · 장애 동작 · 클라우드 · 팀 규칙 · 정책 값 · 문서끼리 다름 · 모름 · 회의 결정.
 
-| # | 유형 | 질문 | 근거 후보 |
-|---|---|---|---|
-| 1 | 명세 값 | 도서 임베딩 모델과 벡터 차원은? | `ai/1-model-api/spec.md` |
-| 2 | 함정 | 추천 이유 생성에 원문조각 RAG(`book_passage`)를 쓰나? | 결정 로그 09-15, `ai/5-context-augmentation/design.md` |
-| 3 | 함정 | LangChain 쓰나? | 결정 로그 09-21 |
-| 4 | 함정 | 검색에 BM25를 쓰나? | 결정 로그 09-24 |
-| 5 | 함정 | 홈 추천 피드(④)는 POST인가? | `ai/1-model-api/spec.md` |
-| 6 | 결정 이유 | BE와 AI가 DB를 따로 쓰는 이유는? | `ai/3-architecture-modularization/design.md` |
-| 7 | 결정 이유 | 서비스에 MCP 전송을 도입하지 않은 이유는? | `ai/6-tool-integration/design.md` |
-| 8 | 명세 값 | 인기 점수 복제 테이블의 컬럼은? | `ai/9-data-erd/spec.md` |
-| 9 | 장애 동작 | AI Postgres가 죽으면 API는 어떻게 응답하나? | `ai/1-model-api/spec.md`, `ai/3-…/design.md` |
-| 10 | 클라우드 | CI 파이프라인은 어떤 단계로 구성되나? | `cld/2-ci-pipeline/overview.md` |
-| 11 | 팀 규칙 | 변환된 문서는 어디서만 수정하나? | 결정 로그 09-17, `docs/README.md` |
-| 12 | 모름이 정답 | 문서에 없는 내용을 묻는 질문 1~2개 | 없음 (정말 없는지 먼저 확인) |
-| 13 | 레포 횡단 (v2) | 챗봇 요청은 BE 어느 컨트롤러를 거쳐 AI로 가나? | BE `RecommendationController`(`POST /api/v1/recommend/chat`) → `AiRecommendationClientImpl` → AI `/recommendations/chat` |
-| 14 | 정책 값 | 배송비는 얼마인가? 탈퇴 후 복구할 수 있는 기간은? | `fs/4-business-policy/spec.md` |
-| 15 | 명세 값 | BE 테이블의 시각 컬럼 타입은? AI는 그걸 어느 시간대로 해석하나? | `fs/1-table-spec/spec.md` 33~35행, `ai/9-data-erd/spec.md` 87행 · 311행 |
-| 16 | 문서끼리 다름 | 공통 응답 형식은? (정답: 문서마다 다르다고 답하고 둘 다 인용해야 함) | §5-1 #1 |
-| 17 | 명세 값 | 상품 목록 API 경로와 페이지 방식은? | `fs/2-api/spec.md` 상품 |
+- 검사: `uv run python -m tka.golden check` — 근거 줄이 기준 커밋에 있는지, v0 근거가 포함 규칙 안인지, 모름 문항의 단어가 정말 문서에 없는지.
+- 확인 시트: `uv run python -m tka.golden review` — 근거 줄 원문을 붙인 시트를 `data/`에 만든다(커밋하지 않음).
 
 ## 7. 아직 확인하지 않은 것
 
 - CLOUD 레포 자체 GitHub Wiki와 wiki 레포 `docs/cld/`의 관계 (같은 내용의 원본과 변환본인지).
 - BE의 ①②④⑥⑦ 연동 여부, BE가 AI에 보내는 요청 필드가 AI 명세와 맞는지 (③ 챗봇 연동만 확인, §4).
-- wiki main `4f6a6a6`에서 바뀐 내용이 §4·§5·§6의 사실과 줄 번호에 주는 영향.
+- wiki main `4f6a6a6`에서 바뀐 내용이 §4·§5의 사실과 줄 번호에 주는 영향 (골든셋 §6은 `4f6a6a6`로 다시 맞췄다).
 - FS 문서의 원본이 Notion(API)·ERDCloud(ERD)에도 있는데, wiki 변환본과 어느 쪽이 최신인지.

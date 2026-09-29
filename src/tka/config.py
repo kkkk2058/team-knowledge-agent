@@ -27,6 +27,26 @@ class Source:
     exclude: tuple[str, ...]
     extensions: tuple[str, ...]
 
+    @property
+    def repo_name(self) -> str:
+        """owner를 뺀 레포 이름. 예: KTB4-13th-wiki"""
+        return self.repo.split("/", 1)[1]
+
+    def includes(self, path: str) -> bool:
+        """레포 루트 기준 경로(`/` 구분)가 포함 규칙에 드는가.
+
+        include·exclude 항목이 `/`로 끝나면 폴더, 아니면 파일 하나를 뜻한다.
+        """
+        return (
+            path.endswith(self.extensions)
+            and any(_matches(path, rule) for rule in self.include)
+            and not any(_matches(path, rule) for rule in self.exclude)
+        )
+
+
+def _matches(path: str, rule: str) -> bool:
+    return path.startswith(rule) if rule.endswith("/") else path == rule
+
 
 @dataclass(frozen=True)
 class Config:
@@ -35,6 +55,10 @@ class Config:
     cache_dir: Path  # 레포 루트 기준
     index_path: Path  # 레포 루트 기준
     sources: tuple[Source, ...]
+
+    def source_for_repo(self, repo_name: str) -> Source | None:
+        """레포 이름(owner 제외)으로 소스를 찾는다. 설정에 없으면 None."""
+        return next((s for s in self.sources if s.repo_name == repo_name), None)
 
 
 def load_config(path: Path) -> Config:

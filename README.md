@@ -26,6 +26,17 @@ uv run ruff check
 ```
 
 - 소스 레포 캐시(`.cache/`)와 인덱스(`data/`)는 커밋하지 않는다. 소스 문서는 항상 원본 레포에서 가져온다.
+
+### 골든셋 검사
+
+소스를 기준 커밋으로 받아 둔 뒤 검사한다. 가져오기 명령은 3단계에서 생긴다.
+
+```bash
+git clone https://github.com/100-hours-a-week/KTB4-13th-wiki .cache/sources/wiki
+git -C .cache/sources/wiki checkout 4f6a6a6
+uv run python -m tka.golden check    # 근거 줄·포함 규칙·모름 문항 검사
+uv run python -m tka.golden review   # 정답 확인 시트 → data/golden_review.md
+```
 - `.env`에는 LLM 키를 넣는다 (답변 단계부터 필요). 커밋하지 않는다.
 
 ## 문서

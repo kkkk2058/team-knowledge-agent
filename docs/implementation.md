@@ -29,9 +29,8 @@ src/tka/
   cli.py              core를 부르는 얇은 껍데기
   mcp_server.py       core를 부르는 얇은 껍데기 (v1)
 eval/
-  golden_candidates.yaml   골든셋 후보 (이 레포에 이미 있음)
-  drift_cases.yaml         모순 정답셋 후보 (이 레포에 이미 있음)
-  golden.yaml              직접 확정한 골든셋
+  golden.yaml              골든셋 (검사·확인 시트: src/tka/golden.py)
+  drift_cases.yaml         모순 정답셋 후보
   run_eval.py              recall@5, 인용 정확도 채점
   results/                 실행마다 소스 커밋·설정 해시와 함께 저장
 ```
@@ -122,7 +121,7 @@ eval/
 | # | PR | 확인 방법 |
 |---|---|---|
 | 0 | 프로젝트 기본 설정: uv, `.gitignore`, 설정 파일(기준 커밋 포함), README | `pytest`·`ruff` 통과, `.env`가 git에 안 잡힘 |
-| 1 | 골든셋 확정 (`golden_candidates.yaml` → `golden.yaml`). Claude가 기준 커밋으로 근거 줄을 다시 맞추고 20문항으로 채운다. **정답은 레포 주인이 확인한다** | 문항마다 근거 줄이 기준 커밋에서 열린다 |
+| 1 | 골든셋 `eval/golden.yaml` 20문항. Claude가 기준 커밋으로 근거 줄을 맞추고, **정답은 레포 주인이 확인한다** | `python -m tka.golden check` 문제 0건 |
 | 2 | 베이스라인 채점 (Claude Code 새 세션, DeepWiki) | `eval/results/`에 기록 |
 | 3 | 가져오기·고르기 → 파일 목록 출력 | 기준 커밋에서 34개 (context.md §3) |
 | 4 | 정규화 + 청킹 → 청크 덤프 | AI-5 콜아웃, FS-2 엔드포인트 분리, 표 보존 |
