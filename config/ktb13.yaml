@@ -1,0 +1,28 @@
+# 북적북적 팀(KTB4-13th) 설정. 팀 하나 = 설정 파일 하나 (plan.md D7).
+# 경로는 레포 루트 기준이다.
+
+team: ktb4-13th
+
+# 결정 로그 날짜(예: 09-21)에는 연도가 없어서 이 값을 붙인다.
+decision_log_year: 2026
+
+paths:
+  cache_dir: .cache/sources
+  index_path: data/index.sqlite
+
+sources:
+  - name: wiki
+    repo: 100-hours-a-week/KTB4-13th-wiki
+    # 평가 기준 커밋. 브랜치 이름이 아니라 커밋으로 고정한다 (implementation.md ①).
+    # 4f6a6a6 = PR #184(FS 문서) 병합 커밋, 2026-09-28.
+    ref: 4f6a6a6
+    # include 목록 밖은 모두 빠진다: backup/, docs/inbox/, 나머지 .agents/, .claude/ (context.md §3).
+    include:
+      - docs/README.md
+      - docs/ai/
+      - docs/cld/
+      - docs/dec/
+      - docs/fs/
+      - .agents/skills/ktb4-docs/references/decisions.md
+    exclude: []
+    extensions: [.md]
