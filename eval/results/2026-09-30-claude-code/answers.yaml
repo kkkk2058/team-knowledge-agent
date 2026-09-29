@@ -1,0 +1,389 @@
+run_id: 2026-09-30-claude-code
+system: claude-code
+detail:
+  session: 새 세션 (claude -p), 이 프로젝트 맥락 없음
+  allowed_tools: Read,Grep,Glob
+  mcp: 끔 (--strict-mcp-config)
+  prompt_template: |-
+    {question}
+
+    이 레포의 문서를 근거로 한국어로 답해줘. 근거로 쓴 파일 경로와 줄 번호를 `경로:줄` 형식으로 함께 적어줘. 문서에 근거가 없으면 모른다고 답해.
+  started_at: '2026-09-30T02:56:54+09:00'
+  tool: Claude Code 2.1.274
+  models:
+  - claude-sonnet-5
+source_commits:
+  KTB4-13th-wiki: 4f6a6a6
+answers:
+- id: g01
+  answer: |-
+    도서 임베딩 모델과 벡터 차원은 **`multilingual-e5-small`, 384차원**입니다.
+
+    - `docs/ai/1-model-api/spec.md:195` — "벡터는 `multilingual-e5-small` 384차원이다(ERD §5)."
+    - `docs/ai/1-model-api/spec.md:240` — `model` 응답 필드 설명에 "multilingual-e5-small" 명시
+    - `docs/ai/9-data-erd/appendix.md:53` — ERD상 `book_embeddings.embedding` 타입이 `vector(384)`
+  meta:
+    duration_ms: 20859
+    cost_usd: 0.21975120000000004
+    num_turns: 5
+- id: g02
+  answer: |-
+    **쓰지 않는다.** `book_passage` 원문조각 RAG는 폐기됐고, 추천 이유(`reason_long`)는 `v_books.description`만 근거로 생성한다.
+
+    - `docs/dec/000-decision-log.md:28` — "`book_passage` 원문조각 RAG·`preset_vectors` 얕은 RAG 폐기. `reason_long`은 `v_books.description`만 근거로 생성"
+    - `docs/ai/5-context-augmentation/design.md:13` — "`book_passage` 원문조각 RAG와 `preset_vectors` 얕은 RAG는 재검토 후 폐기했다(2026-09-15). `reason_long`은 `v_books.description`만 근거로 ③ 카드 생성 한 호출에서 생성한다."
+    - `docs/ai/5-context-augmentation/design.md:217` — "`book_passage` 원문조각 RAG는 **폐기**한다 — 고정된 카드 3장의 이유 문구 생성에 벡터 인프라를 쓸 근거가 약하다는 과설계 판단(2026-09-15)."
+    - `docs/ai/8-final-integration/design.md:156` — "원문 조각(`book_passage`) 검색·인용 검증 ... 미채택 ... 이유 생성은 길이 상한·카드 제외 규칙으로 ... 대체"
+
+    참고로 `book_passage` 관련 인덱싱·검색·grounding 검증 절은 같은 문서(`docs/ai/5-context-augmentation/design.md`) §2-A·§4-A에 폐기 이력으로만 남아 있다(§2-B·§4-B의 Visual RAG는 이 결정과 무관).
+  meta:
+    duration_ms: 11643
+    cost_usd: 0.0934494
+    num_turns: 3
+- id: g03
+  answer: |-
+    레포 문서 기준으로 **LangChain을 쓰기로 결정은 했지만, 실제 코드는 아직 전환 전(직접 SDK 호출)** 상태입니다.
+
+    - 결정 로그: 2026-09-21에 ③(대화 추천)·⑤(취향 기억 추출)는 **LangChain**, ⑦(쇼핑 에이전트)은 **LangGraph** 도입으로 V1의 "미도입" 결정을 번복함
+      → `docs/dec/000-decision-log.md:23`
+
+    - 설계 문서에도 같은 결정이 반영됨: "③ 대화 추천·⑤ 취향 기억 추출은 LangChain, ⑦ 쇼핑 에이전트는 LangGraph로 구현한다"
+      → `docs/ai/4-multistep-pipeline/design.md:13`
+
+    - 다만 예외 규칙 있음: 벡터 임베딩이 필요할 때는 LangChain의 Embeddings 클래스를 쓰지 않고 모델 게이트웨이 `embed()`로만 호출 (저장된 벡터와 좌표계를 맞추기 위함)
+      → `docs/ai/4-multistep-pipeline/design.md:15`
+
+    - V1 시점엔 원래 "프레임워크 미채택(LangChain 도입 안 함)"이었다가 위 결정으로 뒤집힌 것이 취소선으로 남아있음
+      → `docs/ai/4-multistep-pipeline/design.md:406`, `docs/ai/4-multistep-pipeline/design.md:411-419`
+
+    - 최종 통합 설계 문서에도 동일하게 반영: "③⑤ LangChain · ⑦ LangGraph 도입(2026-09-21 팀 논의로 변경)"
+      → `docs/ai/8-final-integration/design.md:13`, `docs/ai/8-final-integration/design.md:155`
+
+    - **단, 코드는 아직 전환되지 않음**: "코드는 아직 `openai` SDK 직접 호출(`app/gateway/llm.py`)이라 전환은 후속 작업이다"
+      → `docs/inbox/ai/개발-로그.md:48`
+
+    - 의존성 관점에서도 기록: "2026-09-21 이후 LangChain·LangGraph가 의존성에 더해져, 위 목록과 '단순' 서술은 도입 전 기준"
+      → `docs/ai/6-tool-integration/design.md:369`
+
+    **요약**: 설계·결정 문서상으로는 LangChain(③⑤)/LangGraph(⑦) 도입이 확정돼 있으나, 개발 로그 기준 코드 구현은 아직 `openai` SDK 직접 호출 단계이고 실제 전환은 후속 작업으로 남아 있습니다.
+  meta:
+    duration_ms: 35452
+    cost_usd: 0.11556759999999999
+    num_turns: 2
+- id: g04
+  answer: |-
+    이 레포 기준으로 답하면: **② 챗봇 이미지 인식(표지 사진 검색)에서는 BM25를 쓰지만, ① 일반 검색(`POST /search`)에서는 V1에서 BM25를 쓰지 않는다.**
+
+    - ① 검색은 `pg_trgm`(글자 조각)만 쓴다. 형태소 분석(Kiwi·Mecab-ko)+BM25를 261만 권 기준으로 비교했을 때 속도·품질 모두 pg_trgm이 나아서, V1은 형태소 분석을 쓰지 않기로 했다. 쓰지 않던 `tsvector` 색인도 지웠다.
+      - `docs/dec/000-decision-log.md:20`
+      - `docs/ai/4-multistep-pipeline/design.md:73`
+
+    - 다만 ③ 챗봇의 "사진으로 책 찾기"(표지 이미지 인식) 흐름에서는 도서 DB 검색에 `BM25(title+author) + pg_trgm 오타 보정`을 쓴다고 별도로 명시되어 있다. 이건 ①의 키워드 검색 로직과는 다른 용도다.
+      - `docs/ai/5-context-augmentation/design.md:163`
+      - `docs/ai/6-tool-integration/design.md:195, 241`
+
+    정리하면: 전체 검색(①)은 BM25 안 씀 → pg_trgm만. 표지 사진 인식용 도서 매칭은 BM25 씀.
+  meta:
+    duration_ms: 29221
+    cost_usd: 0.137794
+    num_turns: 5
+- id: g05
+  answer: |-
+    홈 추천 피드(④)는 **GET**으로 호출합니다. POST가 아닙니다.
+
+    - `docs/ai/1-model-api/spec.md:33` — `④ | GET /recommendations/feed | 사용자 취향 프로필로 개인화 추천 목록을 만든다. 검색어를 받지 않는다`
+    - `docs/ai/1-model-api/spec.md:1208` — "부수효과가 없는 읽기는 GET... **④ 피드와 ⑧ /health가 GET이다.** ④는 읽기 전용이라 재시도가 자유롭고 멱등 키가 필요 없다"
+    - `docs/ai/1-model-api/spec.md:1234` — "커서, 전달: ① 검색은 요청 본문, **④ 피드는 쿼리 파라미터**로 싣는다"
+
+    참고로 `docs/inbox/ai/개발-로그.md:313`, `370` 에 따르면 원래 POST였다가 2026-09-16에 GET으로 변경되었고, **BE가 POST로 호출하면 405**가 난다고 명시되어 있습니다. (①`/search`만 검색어가 로그에 남는 걸 막기 위해 예외적으로 POST를 유지합니다.)
+  meta:
+    duration_ms: 11062
+    cost_usd: 0.0937006
+    num_turns: 3
+- id: g06
+  answer: |-
+    레포 문서에 따르면 BE와 AI가 DB를 분리해 쓰는 이유는 크게 세 가지로 정리돼 있습니다.
+
+    **1. DB 엔진 자체가 다르다 — AI는 벡터 검색이 필요해서 PostgreSQL(pgvector)을 쓴다**
+    > "BE는 MySQL, AI 서버는 pgvector를 얹은 PostgreSQL을 쓴다."
+    — `docs/ai/9-data-erd/spec.md:14`
+
+    `book_embeddings.embedding` 필드가 pgvector의 HNSW 인덱스 대상이라 `vector` 타입이 필수이고(`docs/ai/9-data-erd/spec.md:100`), 키워드 검색용 `pg_trgm` 인덱스도 같은 Postgres에 건다(`docs/ai/9-data-erd/spec.md:144`). 즉 AI가 필요로 하는 벡터/유사도 검색 기능이 BE의 MySQL에는 없기 때문에 별도 DB가 필요하다.
+
+    **2. 테이블마다 writer(쓰기 주체)를 하나로 유지하기 위해 — 복제를 한 방향으로만 둔다**
+    > "복제는 BE MySQL → AI Postgres 단방향뿐이고 역방향 복제는 없다." / "테이블마다 writer가 하나다. 양쪽이 같은 행을 쓰면 충돌 해결 규칙이 필요해지고, 그 규칙이 틀리면 주문·재고가 조용히 덮인다." / "AI가 만든 값이 BE 검증을 우회하지 않는다."
+    — `docs/ai/9-data-erd/spec.md:14`, `255-258`
+
+    즉 커머스 원본(회원·주문·재고 등)은 BE가 소유하고, AI가 만드는 값(취향 프로필, 임베딩 등)은 AI가 소유하도록 나눠서 쓰기 충돌과 검증 우회를 막는다.
+
+    **3. 장애/영향 범위를 분리하기 위해**
+    > "권한 부여 범위와 장애 전파 범위 확인용이다. 조회 대상은 전부 AI PostgreSQL 안에 있다 — BE 장애가 조회 실패로 오지 않고 복제가 멈추면 값이 갱신되지 않을 뿐이다."
+    — `docs/ai/9-data-erd/spec.md:279`
+
+    즉 AI 서버가 BE DB를 직접 조회하지 않고 자기 DB 안의 복제본만 보게 해서, BE 장애가 AI 조회 실패로 바로 전파되지 않게 한다(복제가 멈추면 데이터가 오래될 뿐).
+
+    참고로 이 구조에서 `v_` 접두사가 붙은 테이블들(`v_books`, `v_products` 등)은 AI DB 안의 "BE 원본 사본"이며 AI는 이를 읽기만 하고 쓰지 않는다(`docs/ai/9-data-erd/spec.md:19, 23`).
+  meta:
+    duration_ms: 39890
+    cost_usd: 0.17455820000000002
+    num_turns: 7
+- id: g07
+  answer: |-
+    根거를 찾았습니다. `docs/ai/6-tool-integration/design.md`가 핵심 근거입니다.
+
+    ## 답변
+
+    MCP **전송(transport)/서버 프로세스**는 도입하지 않았고, MCP의 **스키마 관례(디스크립터 형식)**만 차용했습니다.
+
+    **이유 — MCP가 값을 내는 조건에 지금 서비스가 해당하지 않기 때문**
+
+    | MCP의 강점 | 이 서비스의 상황 |
+    |---|---|
+    | 도구를 동적으로 발견·협상 | tool이 7종으로 고정, `allow_tools` 화이트리스트도 이미 있음 → 이득 없음 |
+    | 서드파티 도구 서버를 표준 방식으로 연결 | 상대는 자체 BE 팀 하나뿐, 서드파티 직결 없음 |
+    | 한 도구 서버를 여러 AI 클라이언트가 공유 | BE tool 소비자가 AI 서버 하나뿐(단일 소비자) |
+    | 모델↔도구 전송·인증 표준화 | AI↔BE가 같은 내부망 + 서비스 토큰으로 이미 단순하게 풀림 |
+    | LLM SDK의 네이티브 tool-calling | MCP 없이 JSON Schema 디스크립터만 있으면 충분 |
+
+    (docs/ai/6-tool-integration/design.md:51-64)
+
+    대신 채택한 방식은 "MCP 호환 디스크립터 + 내부 REST 전송"입니다. BE tool 기능을 MCP와 같은 양식(이름/설명/받는 값 형식/성격)으로만 적어두고, 실제 통신은 평범한 내부 REST로 처리합니다. 나중에 진짜 MCP로 바꿔야 할 일이 생겨도 호출부 코드는 그대로 두고 전송 어댑터 1개만 교체하면 되도록 설계했습니다. (docs/ai/6-tool-integration/design.md:16-27, 65-70, 112)
+
+    **재평가(전환) 트리거** — 다음 중 하나라도 충족되면 MCP 전송으로 전환:
+    1. 에이전트가 자체 BE 밖의 도구를 써야 함 (배송사 추적, 외부 예약/티켓, 결제대행 등)
+    2. BE tool의 소비자가 AI 서버 외에 생김 (다른 내부 서비스, 파트너)
+    3. tool 세트가 동적·대규모가 되어 수기 디스크립터 관리가 불가능해짐
+    4. 서드파티가 우리 추천을 도구로 호출하는 B2B 요구 (자사가 MCP 서버가 되는 경우)
+
+    (docs/ai/6-tool-integration/design.md:101-110)
+
+    **근거 파일·줄**
+    - docs/ai/6-tool-integration/design.md:11 (요약)
+    - docs/ai/6-tool-integration/design.md:16-27 (결론: MCP 미도입 + 대안)
+    - docs/ai/6-tool-integration/design.md:49-64 (도입 여부 판단표)
+    - docs/ai/6-tool-integration/design.md:101-112 (재평가 트리거·전환 비용)
+    - docs/ai/8-final-integration/design.md:100 (요약 결정표)
+    - docs/ai/8-final-integration/design.md:156-157 (단계6 요약)
+    - docs/ai/8-final-integration/design.md:273 (전환 트리거 통합표)
+  meta:
+    duration_ms: 23355
+    cost_usd: 0.1193934
+    num_turns: 4
+- id: g08
+  answer: |-
+    `v_book_popularity` (인기 점수 복제 테이블) 컬럼은 다음과 같습니다.
+
+    | 필드명 | 타입 | Null 허용 | 설명 |
+    | --- | --- | --- | --- |
+    | book_id | int PK | N | 도서 ID |
+    | sales | int | N | 최근 판매 수 (판매 없으면 0) |
+    | rating_avg | float | Y | 평균 별점 (지금은 읽지 않음) |
+    | rating_count | int | N | 리뷰 수 (지금은 읽지 않음) |
+    | as_of | timestamptz | N | 집계 기준 시각 (BE가 채운 값 그대로 복제) |
+
+    현재 인기 점수는 `sales`(판매 수) 단일 기준이며, `rating_avg`/`rating_count`는 컬럼은 있지만 아직 읽지 않는다고 명시되어 있습니다.
+
+    근거: `docs/ai/9-data-erd/spec.md:159-169`
+  meta:
+    duration_ms: 12429
+    cost_usd: 0.1042972
+    num_turns: 4
+- id: g09
+  answer: |-
+    **AI Postgres가 죽으면 관련 API는 전면 500을 반환한다. 구매 경로는 영향 없음.**
+
+    - AI 서버는 BE(Spring+MySQL)와 완전히 분리된 자기 소유 PostgreSQL(+pgvector)을 쓰고, BE→AI 단방향 복제만 있어서 AI DB 장애가 BE 쪽으로 전파되지는 않지만, AI Postgres 자체가 응답하지 않으면 그 위에 얹힌 검색·추천·챗봇·피드 기능이 전부 500을 낸다.
+      - `docs/ai/3-architecture-modularization/design.md:218` — "BE MySQL이 죽어도 AI는 낡은 복제본으로 계속 200 응답한다(복제만 멈춤, AI 응답은 500이 아님) — 반대로 AI Postgres가 죽으면 검색·추천 전체가 500이다."
+      - `docs/ai/3-architecture-modularization/design.md:280` — "AI Postgres 장애 | 검색·chat·feed 전면 500. 구매 경로는 정상"
+      - `docs/ai/9-data-erd/spec.md:59` — "AI Postgres가 응답하지 않는 것 — 전면 500이다. 위 0점 규약을 적용하지 않는다."
+      - `docs/ai/1-model-api/spec.md:1225` — "AI Postgres 장애는 전면 500이고, BE MySQL 장애는 500이 아니라 복제만 멈춘다"
+      - `docs/ai/4-multistep-pipeline/design.md:106` — "AI Postgres 자체가 응답 불능이면 전면 500."
+      - `docs/ai/7-infra-monitoring/design.md:193` — "`postgres` 중단 | ①③④⑥ 전면 500 | 검색·추천 불가. **구매 경로는 정상** | 5xx 비율, DB 연결 실패 | 컨테이너 재기동. 데이터는 EBS에 남는다"
+      - `docs/ai/6-tool-integration/design.md:199` — "**AI PG 전면 장애만 ①③④ 500**, 복제 지연·행 부재는 낡은 값으로 200"
+
+    정리하면: 복제 지연이나 행 부재는 오류로 취급하지 않고 200(낡은 값 또는 0점)으로 응답하지만, AI Postgres 자체가 죽어 응답 불능이 되는 경우만 예외적으로 전면 500이다(`docs/ai/1-model-api/spec.md:1225`). 이때도 주문·결제 등 구매 경로는 BE MySQL을 쓰므로 정상 동작한다(`docs/ai/7-infra-monitoring/design.md:193`).
+  meta:
+    duration_ms: 19240
+    cost_usd: 0.1319998
+    num_turns: 3
+- id: g10
+  answer: |-
+    Repo의 `docs/cld/2-ci-pipeline/overview.md` 기준으로, PR(Pull Request)에서 CI는 다음을 수행합니다.
+
+    **언제 실행되나**
+    - `main` 대상 PR이 생성·재오픈되거나 새 커밋이 추가되면 CI 실행 (`docs/cld/2-ci-pipeline/overview.md:117`)
+    - 단, Markdown과 `docs/**`만 바뀐 경우엔 실행하지 않음 (`docs/cld/2-ci-pipeline/overview.md:153`)
+    - 같은 PR에 새 커밋이 추가되면 기존 실행은 취소하고 최신 커밋만 검증 (`docs/cld/2-ci-pipeline/overview.md:147`)
+
+    **Repository별 실행 작업**
+    - Frontend: Lint → Test → React Build
+    - Backend: Lint → Test → Application Build
+    - AI Server: Lint → Test
+    (`docs/cld/2-ci-pipeline/overview.md:119-123`)
+
+    **각 단계가 확인하는 것**
+    - Lint: 문법 오류, 미사용 코드, 잘못된 import, 코드 규칙 위반 — 실패 시 Test·Build 미실행 (`docs/cld/2-ci-pipeline/overview.md:163`)
+    - Test: 변경 코드가 의도대로 동작하고 기존 기능에 영향 없는지 확인 — 실패 시 Merge 차단 (`docs/cld/2-ci-pipeline/overview.md:167`)
+    - Build: 실행/배포 가능한 결과물 생성 확인 — 실패 시 Merge 차단 (`docs/cld/2-ci-pipeline/overview.md:169-177`)
+
+    **PR 단계의 목적/제약**
+    - 코드 작성 규칙 위반, Test·Build 실패를 확인해 문제 있는 코드가 `main`에 반영되는 것을 막음 (`docs/cld/2-ci-pipeline/overview.md:64-69`)
+    - PR 단계에는 AWS 권한을 주지 않고 `GITHUB_TOKEN`은 `contents: read`만 허용 — Docker Image 생성/ECR Push는 PR에서 하지 않고 `main` Merge 후에만 수행 (`docs/cld/2-ci-pipeline/overview.md:84`, `129-141`)
+    - Discord notification: 실패 시 PR 작성자에게 알림 전송 (YAML 예시, `docs/cld/2-ci-pipeline/overview.md:217-219`, `258-260`, `315-317`)
+
+    정리하면, PR CI는 **Lint → Test → (Frontend/Backend만) Build**를 GitHub-hosted `ubuntu-latest` Runner에서 실행해 코드 규칙·테스트·빌드 가능 여부만 검증하고, Docker Image 빌드/ECR Push는 하지 않습니다.
+  meta:
+    duration_ms: 19640
+    cost_usd: 0.14102019999999998
+    num_turns: 4
+- id: g11
+  answer: |-
+    변환된 팀 문서는 **레포의 `docs/`** 아래에서 수정한다. 위키 원본이나 위키 페이지를 직접 고치는 게 아니라, `docs/`에서 PR로 수정하고, `main`에 머지되면 CI(`wiki_export.py --sidebar --apply`)가 위키에 자동 반영한다.
+
+    근거:
+    - `.claude/skills/ktb4-docs/SKILL.md:14` — `docs/  ◀── 수정은 항상 여기 (PR)`
+    - `.claude/skills/ktb4-docs/SKILL.md:8` — "팀 규칙을 적용한 문서를 레포 `docs/`에 만든 뒤 위키에 새 페이지로 반영한다"
+    - `CLAUDE.md` (원본 보호 섹션) — "GitHub Wiki(`*.wiki.git`)에 사람이 직접 쓰거나 푸시하지 않는다. 위키 반영은 `main`에 `docs/**`가 머지되면 `.github/workflows/wiki-sync.yml`이 자동 실행한다"
+  meta:
+    duration_ms: 15014
+    cost_usd: 0.0933608
+    num_turns: 5
+- id: g12
+  answer: |-
+    Repo의 `docs/` 문서들에는 React를 프론트엔드로 사용한다는 내용은 있지만(예: `docs/cld/1-initial-deploy/containers.md:28`), Zustand·Redux 등 **전역 상태 관리 라이브러리**를 명시한 문서는 찾지 못했습니다.
+
+    관련해서 확인한 내용:
+    - `docs/cld/1-initial-deploy/containers.md:28` — "React 빌드 결과물은 정적 파일이므로 컨테이너를 실행하지 않고 S3에 저장하여 CloudFront로 제공한다" (FE = React라는 것만 확인 가능)
+    - `docs/fs/3-tech-stack/design.md` — 기술 스택 정의서지만 Java/Gradle/Spring Boot/MySQL/Redis만 다루고 FE 상태관리 항목은 없음
+
+    이 레포 문서에는 근거가 없어서 모릅니다. `backup/` 원본 위키에 관련 내용이 있는지 찾아볼까요?
+  meta:
+    duration_ms: 27319
+    cost_usd: 0.204986
+    num_turns: 9
+- id: g14
+  answer: |-
+    레포 문서를 근거로 확인했습니다.
+
+    ## 배송비
+    **0원**입니다. 이번 MVP는 실제 배송·상품 회수·정산을 제외하며 배송비를 0원으로 정하고 있습니다.
+    - `docs/fs/4-business-policy/spec.md:46` — "실제 배송·상품 회수·정산은 제외한다. 배송비는 0원이다."
+    - `docs/fs/4-business-policy/spec.md:285` — "일반 결제금액 = 상품 자체 할인을 반영한 구매금액 − 쿠폰 할인 − 사용 포인트. 배송비는 0원이다."
+
+    ## 탈퇴 후 복구 가능 기간
+    **7일**입니다. 탈퇴를 신청한 뒤 7일 이내에 다시 로그인하면 탈퇴가 취소되고 계정이 복구됩니다. 7일이 지나면 탈퇴가 완료되어 계정을 복구할 수 없습니다.
+    - `docs/fs/4-business-policy/spec.md:59` — "**탈퇴 신청 / 완료**: 신청 후 7일은 복구 가능 기간이다. 그 기간이 끝나면 탈퇴가 완료된다."
+    - `docs/fs/4-business-policy/spec.md:98` — "탈퇴 신청 후 7일 이내에 다시 로그인하면 탈퇴를 취소하고 기존 계정을 복구한다."
+    - `docs/fs/4-business-policy/spec.md:99` — "7일 경과 후 탈퇴가 완료되면 남은 혜택은 소멸하고 기존 계정은 복구하지 않는다. 재가입은 즉시 가능하며 추가 30일 제한은 없다."
+  meta:
+    duration_ms: 18080
+    cost_usd: 0.1619964
+    num_turns: 5
+- id: g15
+  answer: |-
+    ## 답변
+
+    **BE 테이블의 시각 컬럼 타입: `DATETIME(6)`**
+    - `TIMESTAMP`의 2038년 상한을 피하려고 `DATETIME(6)`을 선택했다 — `docs/fs/1-table-spec/spec.md:33-34`
+    - 실제 테이블 정의에서도 `created_at`/`updated_at`/`deleted_at` 등 모든 시각 컬럼이 `DATETIME(6)`으로 명시돼 있다 (예: `docs/fs/1-table-spec/spec.md:63-65`)
+
+    **AI는 복제 시 어느 시간대로 해석하는가: 한국 시간(Asia/Seoul)**
+    - AI 쪽 결론: "BE MySQL `DATETIME`은 시간대가 없고 BE는 한국 시간(Asia/Seoul)으로 저장하므로, 복제 시 Asia/Seoul로 해석해 적재한다" — `docs/ai/9-data-erd/spec.md:87`
+    - 근거 표에도 동일하게 정리돼 있다: "BE 원본은 `DATETIME(6)`이고 한국 시간으로 저장된다(배포 설정 `TZ: Asia/Seoul`, 클라우드 compose 문서) → 결정 완료: 복제는 Asia/Seoul로 해석해 적재한다" — `docs/ai/9-data-erd/spec.md:311`
+    - 단, 이 항목의 "BE 협의" 칸은 "불필요. 실제 복제 설정 확인만 남음(AI #235)"이라고 돼 있어, 실제 복제 파이프라인 설정으로 확정 검증되는 절차는 아직 남아 있다 — `docs/ai/9-data-erd/spec.md:311`
+
+    적재 후 AI 쪽 저장 타입은 `timestamptz`이며, 복제된 시각을 UTC 기준으로 비교한다: "모든 시각 컬럼은 `timestamptz`다" — `docs/ai/9-data-erd/spec.md:87`
+  meta:
+    duration_ms: 20559
+    cost_usd: 0.10751720000000001
+    num_turns: 6
+- id: g16
+  answer: |-
+    API 공통 응답 형식은 모든 API 응답을 `result`, `data`, `error` 세 필드를 가진 `ApiResponse`로 정의합니다.
+
+    근거: `docs/fs/2-api/spec.md:15-21`
+  meta:
+    duration_ms: 9684
+    cost_usd: 0.0724588
+    num_turns: 4
+- id: g17
+  answer: |-
+    상품 목록 API는 `GET /api/v1/items`이며, 카테고리에 속한 상품을 **cursor 방식**으로 조회합니다 (권한: 공개).
+
+    근거: `docs/fs/2-api/spec.md:161-163`
+  meta:
+    duration_ms: 10154
+    cost_usd: 0.07306979999999999
+    num_turns: 4
+- id: g18
+  answer: |-
+    V1 배포 방식과 API 중단 시간에 대한 근거를 찾았습니다.
+
+    ## 배포 방식
+
+    - **인프라**: App EC2(Nginx·Backend·MySQL)와 AI EC2(AI Server·PostgreSQL/pgvector)에서 각각 별도의 Docker Compose를 실행하는 구조 (`docs/cld/1-initial-deploy/compose.md:16`, `docs/cld/3-cd-pipeline/overview.md:31-34`)
+    - **CI/CD**: GitHub Actions + AWS Systems Manager(SSM Run Command)로 배포를 실행하며, 운영 반영은 GitHub `production` Environment의 승인을 거치는 **Continuous Delivery** 방식 (SSH 대신 SSM 사용) (`docs/cld/3-cd-pipeline/overview.md:34, 44, 400`)
+    - **배포 전략**: 추가 서버 없이 애플리케이션 컨테이너만 새 이미지로 교체하는 **Recreate 전략**을 사용하며, Blue-Green/Rolling/Canary는 자원·비용 문제로 제외 (`docs/cld/3-cd-pipeline/overview.md:64, 264-290`)
+    - **배포 순서**: AI Server 배포·검증 → Backend 배포·검증 → Frontend 전환(S3 `releases/<sha>/` 경로 전환) → 최종 Smoke Test (`docs/cld/3-cd-pipeline/overview.md:138-147`)
+    - MySQL·PostgreSQL(pgvector) 컨테이너와 Volume은 일반 배포·Rollback 과정에서 재생성하지 않음 (`docs/cld/3-cd-pipeline/overview.md:151, 344`)
+    - 배포는 이미지 태그로 Git Commit SHA를 사용하며, 실패 시 직전 버전(`previous-release.env`)으로 자동/수동 Rollback 가능 (`docs/cld/1-initial-deploy/compose.md:270-277`, `docs/cld/3-cd-pipeline/overview.md:159-177, 326-350`)
+
+    ## 배포 중 API 중단 시간
+
+    - 배포는 점심·저녁 등 사용자 집중 시간대를 피해 진행하며, **계획된 API 중단은 최대 5분 이내를 목표**로 함 (단, 주문·거래 데이터 유실은 허용하지 않음) (`docs/cld/3-cd-pipeline/overview.md:66`)
+    - 현재 CD 구조의 한계로도 "**Recreate 배포 중 최대 5분의 서비스 중단이 발생할 수 있음**"이라고 명시 (`docs/cld/3-cd-pipeline/overview.md:424`)
+    - V1은 무중단 배포(Blue-Green/Rolling)를 도입하지 않고 짧은 중단을 허용하는 것을 전제로 설계됨 (`docs/cld/1-initial-deploy/overview.md:18`, `docs/cld/3-cd-pipeline/overview.md:22, 281, 290`)
+  meta:
+    duration_ms: 25219
+    cost_usd: 0.1449858
+    num_turns: 6
+- id: g19
+  answer: |-
+    ## 답변
+
+    네, 된다. 취향 벡터(취향 프로필)가 저장되어 있지 않아도 구매·리뷰 이력이 있으면 챗봇(③)·피드(④)가 그 이력만으로 임시 취향을 만들어 개인화한다. 단, 이 임시 취향은 저장되지 않고 매 요청 때마다 다시 계산된다.
+
+    > 예외: 저장된 취향 벡터가 없는데 구매·리뷰 이력이 있으면 ③④가 요청 때 이력만으로 임시 취향을 만들어 쓴다(저장하지 않음, AI #246).
+
+    **근거**
+    - `docs/ai/1-model-api/spec.md:1176` — 위 인용문의 원문 (핵심 설계 원칙 항목)
+    - `docs/dec/000-decision-log.md:14` — 09-28 결정 로그: "취향 벡터가 없어도 구매·리뷰가 있으면 ③④가 이력으로 개인화(AI #246)"
+  meta:
+    duration_ms: 12441
+    cost_usd: 0.08942739999999999
+    num_turns: 4
+- id: g20
+  answer: |-
+    레포 문서에는 결제 PG사(구체적인 업체명)를 명시한 내용이 없습니다.
+
+    문서에서 "결제대행사/결제사"는 언급되지만 특정 업체명(예: 토스페이먼츠, 아임포트/포트원, KG이니시스 등)은 나오지 않습니다.
+
+    - `docs/fs/1-table-spec/spec.md:636` — `origin_amount`: 결제대행사 요청 금액 (DECIMAL(19,2) 사용 이유 설명, 업체명 없음)
+    - `docs/fs/3-tech-stack/design.md:328` — 결제사 API는 DB 트랜잭션 밖의 동작이므로 별도 관리 (업체명 없음)
+    - `docs/ai/6-tool-integration/design.md:56,104` — 결제대행은 "서드파티 없음"으로 명시, 즉 AI 서버 관점에서는 외부 결제대행 연동 자체가 범위 밖
+
+    특정 PG사가 어디인지는 문서에 근거가 없어 모릅니다.
+  meta:
+    duration_ms: 15021
+    cost_usd: 0.07896
+    num_turns: 3
+- id: g21
+  answer: |-
+    문서상 답은 "부분적으로 정했다"입니다. 두 문서가 서로 다른 범위를 다루고 있어 나눠서 봐야 합니다.
+
+    **1) V2 AI 비동기 작업 전체(장시간 AI 작업을 HTTP에서 분리)는 SQS 도입으로 결론이 나 있음**
+    - `backup/wiki-original-2026-09-21/2.4.-AI-연동-구조의-한계와-개선.md:5` — "V2 AI 작업에는 **Amazon SQS Standard + DLQ**를 도입한다."
+    - 같은 파일 `:388` — "따라서 V2 AI 작업 큐는 **Amazon SQS Standard + DLQ**로 확정한다."
+    - 같은 파일 `:311~386` — FIFO·RabbitMQ·Redis·Kafka는 모두 검토 후 제외.
+
+    다만 이 문서는 `backup/wiki-original-2026-09-21/` (위키 원본, 2026-09-21 스냅샷)에만 있고, `docs/` 팀 규칙 문서로는 아직 변환·반영되지 않은 상태입니다 (`docs/ai/`, `docs/cld/` 어디에도 SQS 관련 내용 없음).
+
+    **2) 다만 특정 기능(⑤ 취향 추출)에 한해서는 "아직 미정"이라고 docs/ 공식 문서에 명시**
+    - `docs/ai/8-final-integration/design.md:243` — "⑤ 취향 추출(V2)을 야간 배치로 유지할지 메시지 큐로 뺄지 — 현재는 배치로 설계, 구현 선택지로 열어 둠"
+    - `docs/ai/3-architecture-modularization/design.md:91` — 동일 내용
+
+    즉, "AI 비동기 작업 처리 방식 자체"는 SQS로 정했다는 문서(backup, 미변환)가 있지만, 그중 취향 추출 기능이 배치로 남을지 큐로 옮길지는 공식 문서(docs/)에서도 여전히 "열린 질문"으로 남아 있습니다.
+  meta:
+    duration_ms: 53130
+    cost_usd: 0.18530739999999998
+    num_turns: 9

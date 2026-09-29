@@ -55,6 +55,16 @@ def test_resolve_path_accepts_unique_suffix_only():
     assert resolve_path("pec.md", tracked) is None  # 폴더 경계에서만 맞춘다
 
 
+def test_resolve_path_matches_nfd_and_nfc_korean_names():
+    import unicodedata
+
+    nfd = unicodedata.normalize("NFD", "backup/개발-로그.md")
+    tracked = {nfd}
+
+    assert resolve_path("backup/개발-로그.md", tracked) == nfd  # 원래 경로를 돌려준다
+    assert resolve_path("개발-로그.md", tracked) == nfd
+
+
 # ── 인용 판정 ─────────────────────────────────────────────────────
 
 
@@ -82,6 +92,21 @@ def test_check_citations(tmp_path, source):
         ("docs/a.md", False, False),
         (None, False, False),
     ]
+
+
+def test_citation_through_symlinked_folder(tmp_path, source):
+    config, commit = source
+    repo = tmp_path / ".cache" / "sources" / "wiki"
+    (repo / ".claude").mkdir()
+    (repo / ".claude" / "skills").symlink_to("../.agents")  # 폴더 링크
+    git(repo, "add", ".claude")
+    git(repo, "commit", "-q", "-m", "link")
+    item = _golden(tmp_path, [make_item()], commit).items[0]
+    sources = {"wiki": SourceFiles(repo, set(git(repo, "ls-files").splitlines()))}
+
+    checks = check_citations([Citation(".claude/skills/d.md", 1, 1)], item, sources)
+
+    assert (checks[0].path, checks[0].exists) == (".agents/d.md", True)
 
 
 def test_load_sources_stops_when_checkout_moved(tmp_path, source):

@@ -119,7 +119,7 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 | 5 | 같은 문서 안 모순: FS-1에서 `active_flag`를 한 곳은 STORED, 다른 곳은 VIRTUAL 생성 컬럼이라고 한다 | `fs/1-table-spec/spec.md` 22행 · 55행 |
 | 6 | 상태 표기: FS-4 frontmatter `status: 작성중`, 본문은 "최종본" | `fs/4-business-policy/spec.md` |
 | 7 | 같은 문서 안 요약 누락 (후보): AI ERD 19행 "BE 복제" 요약에는 `v_books`, `v_book_popularity`, `v_user_*` 3종만 있고 `v_products`가 없다. 68행 표와 §3.11은 `v_products`를 정의한다(09-25 결정, AI #208) | `ai/9-data-erd/spec.md` 19행 · 68행 · 262행 |
-| 8 | 문서와 회의 기록: AI 문서는 V2 ⑤ 취향 추출을 야간 배치로 두고 메시지 큐는 선택지로 열어 뒀는데, 2026-09-22 타운홀(wiki #138) 클라우드 보고는 V2 AI를 "SQS Standard + DLQ 기반 비동기 처리"로 설계했다고 한다. 이슈를 소스로 넣어야 찾을 수 있다 (2026-09-30 확인, `4f6a6a6`) | `ai/3-architecture-modularization/design.md` 91행, `ai/8-final-integration/design.md` 243행, wiki #138 |
+| 8 | AI 문서와 변환 전 클라우드 원본: AI 문서는 V2 ⑤ 취향 추출을 야간 배치로 두고 메시지 큐는 선택지로 열어 뒀는데, 클라우드 위키 원본 "AI 작업 큐 도입 판단"은 V2 AI 작업 큐를 SQS Standard + DLQ로 확정했다(2026-09-22 타운홀 wiki #138에서도 보고). 원본이 아직 `docs/`로 변환되지 않아 `backup/`에만 있다. ⑤만 배치로 남기는 의도된 차이일 수 있다 (2026-09-30 확인, `4f6a6a6`) | `ai/3-architecture-modularization/design.md` 91행, `backup/wiki-original-2026-09-21/2.4.-AI-연동-구조의-한계와-개선.md` 5·388행 |
 
 모순처럼 보였지만 아닌 사례(BE 시각 컬럼 해석 시간대)는 [eval/drift_cases.yaml](../eval/drift_cases.yaml)의 `withdrawn`에 있다. 모순 리포트가 이런 오탐을 내지 않는지(정밀도) 확인하는 데 쓴다.
 

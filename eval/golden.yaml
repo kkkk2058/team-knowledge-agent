@@ -59,7 +59,7 @@ items:
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/dec/000-decision-log.md, lines: "20" }
       - { repo: KTB4-13th-wiki, path: docs/ai/4-multistep-pipeline/design.md, lines: "73" }
-    trap: AI-5 163·391행 옛 설계에 "BM25(title+author)"가 남아 있다
+    trap: V2 표지 인식(AI-5 §2-B·§4-B, 163·391행)은 BM25(title+author)를 쓰는 현행 설계다. ① 검색과 섞으면 틀린다
     note: 2026-09-24 결정 (AI #120, #169)
     status: 확정
 
@@ -239,14 +239,21 @@ items:
     status: 확정
 
   - id: g21
-    type: 회의 결정
+    type: 문서끼리 다름
     version: v0
     question: V2에서 AI 비동기 작업에 메시지 큐를 쓰기로 정했나?
-    expected: 문서 기준으로는 정하지 않았다. ⑤ 취향 추출은 야간 배치로 설계돼 있고, 메시지 큐는 구현 선택지로 열어 두었다
+    expected: >-
+      정했다. 클라우드 설계에서 V2 AI 작업 큐는 SQS Standard + DLQ로 확정했다(아직 docs/로 변환 안 된 위키 원본).
+      다만 AI 문서는 ⑤ 취향 추출을 야간 배치로 두고 메시지 큐로 옮길지는 선택지로 열어 두었다
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/ai/3-architecture-modularization/design.md, lines: "91" }
       - { repo: KTB4-13th-wiki, path: docs/ai/8-final-integration/design.md, lines: "243" }
+      - { repo: KTB4-13th-wiki, path: "backup/wiki-original-2026-09-21/2.4.-AI-연동-구조의-한계와-개선.md", lines: "5", outside_scope: true }
+      - { repo: KTB4-13th-wiki, path: "backup/wiki-original-2026-09-21/2.4.-AI-연동-구조의-한계와-개선.md", lines: "388", outside_scope: true }
+    trap: >-
+      SQS 결정은 변환 전 원본(backup/)에만 있어 v0 인덱스(docs/)로는 못 찾는다.
+      docs/ 범위라고 밝히며 "⑤는 미정"이라고 답하면 부분, 범위를 밝히지 않고 "정하지 않았다"고 단정하면 오답
     note: >-
-      2026-09-22 타운홀 회의(wiki #138) 클라우드 보고에는 V2 AI를 "SQS Standard + DLQ 기반 비동기 처리"로
-      설계했다고 적혀 있다. 문서에는 반영되지 않았다(drift_cases d08). 회의 이슈를 소스로 넣으면 정답이 바뀐다
-    status: 확정
+      2026-09-22 타운홀(wiki #138) 클라우드 보고도 같은 내용이다. 처음에는 "회의에만 있다"고 적었는데,
+      베이스라인 Claude Code가 backup/ 원본에서 찾아내 고쳤다 (2026-09-30)
+    status: 확인 대기

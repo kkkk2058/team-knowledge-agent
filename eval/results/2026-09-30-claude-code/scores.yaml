@@ -1,0 +1,59 @@
+scored_by: Claude 초벌 채점 (2026-09-30), 레포 주인 확인 대기
+rule: 함정 문항은 지금 값을 맞혔는지로 본다. 이력 언급은 점수에 넣지 않는다 (plan.md D15)
+items:
+  - id: g01
+    verdict: 정답
+  - id: g02
+    verdict: 정답
+    reason: 폐기를 맞혔고 §2-A·§4-A가 이력용이라는 것도 구분했다
+  - id: g03
+    verdict: 부분
+    failure: 폐기 내용 인용
+    reason: >-
+      결정(③⑤ LangChain, ⑦ LangGraph)은 맞혔다. 그런데 09-21 개발 로그 사본(docs/inbox, v0 인덱스 밖)의
+      "코드는 아직 전환 전"을 지금 사실처럼 앞세웠다. AI 레포는 이미 langchain-core를 의존성으로 쓰고,
+      09-23 회의(wiki #162)에서 코드 전환 완료가 보고됐다
+  - id: g04
+    verdict: 정답
+    reason: ① 검색은 BM25를 쓰지 않는다고 맞혔고, V2 표지 인식의 BM25(현행 설계)와 구분했다
+  - id: g05
+    verdict: 정답
+  - id: g06
+    verdict: 정답
+    reason: 세 이유(pgvector가 필요한 엔진 차이, 테이블마다 writer 하나로 주문·재고 보호, 장애 격리)가 정답과 같다. 근거는 AI-3이 아니라 ERD 문서를 인용했다
+  - id: g07
+    verdict: 정답
+  - id: g08
+    verdict: 정답
+    reason: 같은 표를 ERD §3.5(159-169)에서 인용했다
+  - id: g09
+    verdict: 정답
+  - id: g10
+    verdict: 정답
+    reason: AI 서버는 Build 없이 Lint·Test만 한다는 것까지 더 정확히 답했다
+  - id: g11
+    verdict: 정답
+    reason: docs/에서만 수정한다는 핵심이 맞다. 위키 반영은 CI 자동 반영으로 답했다(wiki 레포 CLAUDE.md 서술)
+  - id: g12
+    verdict: 정답
+    reason: 모른다고 답했고 지어내지 않았다
+  - id: g14
+    verdict: 정답
+  - id: g15
+    verdict: 정답
+  - id: g16
+    verdict: 오답
+    failure: 근거 못 찾음
+    reason: FS-2의 {result, data, error}만 답했다. 결정 로그 09-17의 {message, data}를 놓쳐 문서끼리 다르다는 걸 모른다
+  - id: g17
+    verdict: 정답
+  - id: g18
+    verdict: 정답
+  - id: g19
+    verdict: 정답
+  - id: g20
+    verdict: 정답
+    reason: PG사 이름을 지어내지 않고 모른다고 답했다
+  - id: g21
+    verdict: 정답
+    reason: 변환 전 클라우드 원본(backup/)에서 SQS Standard + DLQ 확정을 찾고, docs/의 ⑤ 미정과 구분했다. 골든셋 정답을 이 답을 보고 고쳤다

@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -106,10 +107,16 @@ def _normalize_path(path: str) -> str:
 
 
 def resolve_path(raw: str, tracked: set[str]) -> str | None:
-    """인용 경로를 레포 파일로 바꾼다. `spec.md`처럼 줄여 쓴 경로는 하나로 정해질 때만 인정한다."""
-    if raw in tracked:
-        return raw
-    matches = [p for p in tracked if p.endswith("/" + raw)]
+    """인용 경로를 레포 파일로 바꾼다. `spec.md`처럼 줄여 쓴 경로는 하나로 정해질 때만 인정한다.
+
+    한글 파일명은 NFC·NFD가 섞일 수 있어(macOS) 둘 다 NFC로 맞춰 비교하고,
+    레포에 있는 원래 경로를 돌려준다.
+    """
+    raw = unicodedata.normalize("NFC", raw)
+    by_nfc = {unicodedata.normalize("NFC", p): p for p in tracked}
+    if raw in by_nfc:
+        return by_nfc[raw]
+    matches = [original for p, original in by_nfc.items() if p.endswith("/" + raw)]
     return matches[0] if len(matches) == 1 else None
 
 
@@ -120,7 +127,7 @@ def check_citations(
     checks = []
     for c in citations:
         repo, path = next(
-            ((r, p) for r, s in sources.items() if (p := resolve_path(c.raw_path, s.tracked))),
+            ((r, p) for r, s in sources.items() if (p := _resolve_in_source(c.raw_path, s))),
             (None, None),
         )
         if repo is None or path is None:
@@ -136,6 +143,25 @@ def check_citations(
         )
         checks.append(CitationCheck(c, repo, path, exists, hits))
     return checks
+
+
+def _resolve_in_source(raw: str, source: SourceFiles) -> str | None:
+    """레포 경로로 풀고, 안 되면 심볼릭 링크를 따라가 본다.
+
+    예: wiki 레포의 .claude/skills/ktb4-docs는 .agents/skills/ktb4-docs를 가리키는 링크라
+    git에는 링크만 있고 그 아래 파일은 없다.
+    """
+    path = resolve_path(raw, source.tracked)
+    if path is not None:
+        return path
+    candidate = source.directory / raw
+    if not candidate.is_file():
+        return None
+    try:
+        real = candidate.resolve().relative_to(source.directory.resolve()).as_posix()
+    except ValueError:
+        return None  # 레포 밖을 가리키는 링크
+    return resolve_path(real, source.tracked)
 
 
 # ── 실행 결과 읽기 ────────────────────────────────────────────────

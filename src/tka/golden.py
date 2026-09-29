@@ -50,6 +50,9 @@ class Evidence:
     path: str
     start: int
     end: int
+    # v0 포함 규칙 밖에 있는 근거(예: 아직 docs/로 변환 안 된 backup/ 원본).
+    # 봇이 이 범위에서는 못 찾는다는 걸 재려고 일부러 적는다.
+    outside_scope: bool = False
 
     def label(self) -> str:
         span = str(self.start) if self.start == self.end else f"{self.start}-{self.end}"
@@ -183,7 +186,16 @@ def _parse_evidence(raw: Any, where: str, source_commits: dict[str, str]) -> Evi
     end = int(match.group(2) or start)
     if start < 1 or end < start:
         raise GoldenError(f"{where}.lines: 줄 범위가 잘못됐다: {lines!r}")
-    return Evidence(repo=repo, path=_field(raw, "path", str, where), start=start, end=end)
+    outside_scope = raw.get("outside_scope", False)
+    if not isinstance(outside_scope, bool):
+        raise GoldenError(f"{where}.outside_scope: true 또는 false다")
+    return Evidence(
+        repo=repo,
+        path=_field(raw, "path", str, where),
+        start=start,
+        end=end,
+        outside_scope=outside_scope,
+    )
 
 
 def _field(raw: dict, key: str, kind: type | tuple[type, ...], where: str) -> Any:
@@ -303,8 +315,17 @@ def _evidence_problems(
     if ev.path not in tracked:
         return [Problem(item.id, f"{ev.label()}: 기준 커밋에 없는 파일이다")]
     problems = []
-    if item.version == "v0" and not source.includes(ev.path):
-        problems.append(Problem(item.id, f"{ev.label()}: v0 문항 근거가 설정의 포함 규칙 밖이다"))
+    included = source.includes(ev.path)
+    if ev.outside_scope and included:
+        problems.append(Problem(item.id, f"{ev.label()}: outside_scope인데 포함 규칙 안이다"))
+    elif item.version == "v0" and not ev.outside_scope and not included:
+        problems.append(
+            Problem(
+                item.id,
+                f"{ev.label()}: v0 문항 근거가 설정의 포함 규칙 밖이다 "
+                "(일부러 적은 것이면 outside_scope: true)",
+            )
+        )
     lines = read_lines(source_dir(config, root, source) / ev.path)
     if ev.end > len(lines):
         problems.append(Problem(item.id, f"{ev.label()}: 줄 범위 밖이다 (파일은 {len(lines)}줄)"))
@@ -377,7 +398,8 @@ def render_review(golden: GoldenSet, config: Config, root: Path) -> str:
         if item.absent_terms:
             out += [f"**없음 확인 단어** {', '.join(item.absent_terms)}", ""]
         for ev in item.evidence:
-            out += [f"`{ev.label()}`", ""]
+            scope = " (v0 범위 밖)" if ev.outside_scope else ""
+            out += [f"`{ev.label()}`{scope}", ""]
             source = config.source_for_repo(ev.repo)
             path = source_dir(config, root, source) / ev.path if source else None
             if path is None or not path.is_file():

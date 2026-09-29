@@ -180,6 +180,28 @@ def test_v0_evidence_outside_include_rules(tmp_path, source):
     assert "포함 규칙 밖" in result.problems[0].message
 
 
+def test_outside_scope_evidence_is_allowed_only_when_marked(tmp_path, source):
+    config, commit = source
+    outside = {"repo": "wiki", "path": "backup/old.md", "lines": "1", "outside_scope": True}
+    wrongly_marked = {"repo": "wiki", "path": "docs/a.md", "lines": "3", "outside_scope": True}
+    items = [
+        _item(id="g01", evidence=[{"repo": "wiki", "path": "docs/a.md", "lines": "3"}, outside]),
+        _item(id="g02", evidence=[wrongly_marked]),
+    ]
+    result = _check(tmp_path, config, commit, items)
+
+    assert [str(p) for p in result.problems] == [
+        "[g02] wiki/docs/a.md:3: outside_scope인데 포함 규칙 안이다"
+    ]
+
+
+def test_outside_scope_must_be_bool(tmp_path):
+    ev = {"repo": "wiki", "path": "a.md", "lines": "1", "outside_scope": "yes"}
+
+    with pytest.raises(GoldenError, match="outside_scope: true 또는 false"):
+        load_golden(_write(tmp_path, _golden([_item(evidence=[ev])])))
+
+
 def test_absent_term_found_in_included_file(tmp_path, source):
     config, commit = source
     items = [
