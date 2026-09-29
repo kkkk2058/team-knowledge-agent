@@ -37,6 +37,23 @@ git -C .cache/sources/wiki checkout 4f6a6a6
 uv run python -m tka.golden check    # 근거 줄·포함 규칙·모름 문항 검사
 uv run python -m tka.golden review   # 정답 확인 시트 → data/golden_review.md
 ```
+
+### 베이스라인과 채점
+
+모든 시스템에 같은 질문 형식을 쓴다 (`tka.evaluation.PROMPT_TEMPLATE`). 결과는 `eval/results/<날짜>-<시스템>/`에 `answers.yaml`(답), `scores.yaml`(정답·부분·오답), `summary.md`(요약)로 남긴다.
+
+```bash
+# Claude Code: 이 프로젝트 밖에 깨끗한 clone을 두고 새 세션으로 묻는다 (상위 폴더 CLAUDE.md가 섞이지 않게)
+git clone https://github.com/100-hours-a-week/KTB4-13th-wiki /tmp/tka-baseline/KTB4-13th-wiki
+git -C /tmp/tka-baseline/KTB4-13th-wiki checkout 4f6a6a6
+uv run python -m tka.baseline --repo-dir /tmp/tka-baseline/KTB4-13th-wiki
+
+# DeepWiki처럼 손으로 묻는 시스템: 질문이 적힌 틀을 만들고 답을 붙여 넣는다
+uv run python -m tka.evaluation template eval/results/<날짜>-deepwiki --system deepwiki
+
+# scores.yaml을 채운 뒤 요약
+uv run python -m tka.evaluation summary eval/results/<run>
+```
 - `.env`에는 LLM 키를 넣는다 (답변 단계부터 필요). 커밋하지 않는다.
 
 ## 문서

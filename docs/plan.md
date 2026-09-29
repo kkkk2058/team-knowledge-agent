@@ -245,7 +245,7 @@ MCP로 부를 때는 "LLM의 역할" 칸의 답 작성을 부르는 쪽(Claude C
 
 ## 7. 열린 질문
 
-- LLM 제공자와 모델.
+- LLM 모델. 제공자는 OpenRouter로 정했다(2026-09-30). 모델은 구조화 출력을 지원하는 것 중에서 골든셋으로 비교해 고른다.
 - 임베딩 모델: 문서가 한국어라 서비스와 같은 multilingual-e5-small로 시작할지, 다른 후보와 골든셋으로 비교할지.
 - 저장소: 로컬 파일 기반(Chroma, sqlite-vec 등) vs Postgres + pgvector.
 - GitHub 토큰: public 레포 읽기 전용 fine-grained 토큰으로 충분한지.

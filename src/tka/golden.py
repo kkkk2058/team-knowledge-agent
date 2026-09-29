@@ -248,11 +248,11 @@ def check_golden(golden: GoldenSet, config: Config, root: Path) -> CheckResult:
             )
             continue
         directory = source_dir(config, root, source)
-        problem = _checkout_problem(directory, source)
+        problem = checkout_problem(directory, source)
         if problem:
             problems.append(Problem("-", problem))
             continue
-        tracked[repo] = _tracked_files(directory)
+        tracked[repo] = tracked_files(directory)
         checked.append(repo)
 
     for item in golden.items:
@@ -274,7 +274,7 @@ def check_golden(golden: GoldenSet, config: Config, root: Path) -> CheckResult:
     )
 
 
-def _checkout_problem(directory: Path, source: Source) -> str | None:
+def checkout_problem(directory: Path, source: Source) -> str | None:
     fetch_hint = (
         f"받는 법: git clone https://github.com/{source.repo} {directory}"
         f" && git -C {directory} checkout {source.ref}"
@@ -334,7 +334,7 @@ def _absent_problems(
     return problems
 
 
-def _tracked_files(directory: Path) -> set[str]:
+def tracked_files(directory: Path) -> set[str]:
     return set(filter(None, _git(directory, "ls-files", "-z").split("\0")))
 
 

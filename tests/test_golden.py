@@ -1,10 +1,8 @@
-import subprocess
 from pathlib import Path
 
 import pytest
-import yaml
+from helpers import git, make_golden, make_item, write_yaml
 
-from tka.config import Config, Source
 from tka.golden import (
     GoldenError,
     check_golden,
@@ -17,27 +15,15 @@ GOLDEN = Path(__file__).parent.parent / "eval" / "golden.yaml"
 
 
 def _item(**overrides) -> dict:
-    item = {
-        "id": "g01",
-        "type": "명세 값",
-        "version": "v0",
-        "question": "질문?",
-        "expected": "답",
-        "evidence": [{"repo": "wiki", "path": "docs/a.md", "lines": "2"}],
-        "status": "확인 대기",
-    }
-    item.update(overrides)
-    return item
+    return make_item(**overrides)
 
 
 def _golden(items: list[dict], commit: str = "abcdef1") -> dict:
-    return {"meta": {"source_commits": {"wiki": commit}}, "items": items}
+    return make_golden(items, commit)
 
 
 def _write(tmp_path: Path, data: dict) -> Path:
-    path = tmp_path / "golden.yaml"
-    path.write_text(yaml.safe_dump(data, allow_unicode=True), encoding="utf-8")
-    return path
+    return write_yaml(tmp_path / "golden.yaml", data)
 
 
 # ── 형식 검사 ─────────────────────────────────────────────────────
@@ -120,49 +106,6 @@ def test_bad_source_commit_rejected(tmp_path):
 
 
 # ── 원문 대조 ─────────────────────────────────────────────────────
-
-
-def _git(cwd: Path, *args: str) -> str:
-    return subprocess.run(
-        ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
-        cwd=cwd,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-
-
-@pytest.fixture
-def source(tmp_path) -> tuple[Config, str]:
-    """tmp_path/.cache/sources/wiki 에 작은 git 저장소를 만든다."""
-    repo = tmp_path / ".cache" / "sources" / "wiki"
-    (repo / "docs").mkdir(parents=True)
-    (repo / "backup").mkdir()
-    (repo / "docs" / "a.md").write_text("# 제목\n\n임베딩은 e5-small이다\n", encoding="utf-8")
-    (repo / "docs" / "b.md").write_text("결제는 테스트로 운영한다\n", encoding="utf-8")
-    (repo / "backup" / "old.md").write_text("옛 설계\n", encoding="utf-8")
-    (repo / "docs" / "untracked.md").write_text("x\n", encoding="utf-8")
-    _git(repo, "init", "-q", "-b", "main")
-    _git(repo, "add", "docs/a.md", "docs/b.md", "backup/old.md")
-    _git(repo, "commit", "-q", "-m", "init")
-    commit = _git(repo, "rev-parse", "--short=7", "HEAD")
-    config = Config(
-        team="t",
-        decision_log_year=2026,
-        cache_dir=Path(".cache/sources"),
-        index_path=Path("data/index.sqlite"),
-        sources=(
-            Source(
-                name="wiki",
-                repo="org/wiki",
-                ref=commit,
-                include=("docs/",),
-                exclude=(),
-                extensions=(".md",),
-            ),
-        ),
-    )
-    return config, commit
 
 
 def _check(tmp_path, config, commit, items):
@@ -254,7 +197,7 @@ def test_head_must_be_pinned_commit(tmp_path, source):
     config, commit = source
     repo = tmp_path / ".cache" / "sources" / "wiki"
     (repo / "docs" / "a.md").write_text("바뀜\n", encoding="utf-8")
-    _git(repo, "commit", "-q", "-am", "next")
+    git(repo, "commit", "-q", "-am", "next")
 
     result = _check(tmp_path, config, commit, [_item()])
 

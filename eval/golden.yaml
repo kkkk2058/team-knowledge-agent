@@ -24,7 +24,7 @@ items:
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/ai/1-model-api/spec.md, lines: "195" }
       - { repo: KTB4-13th-wiki, path: docs/ai/9-data-erd/spec.md, lines: "305" }
-    status: 확인 대기
+    status: 확정
 
   - id: g02
     type: 함정
@@ -36,7 +36,7 @@ items:
       - { repo: KTB4-13th-wiki, path: docs/ai/5-context-augmentation/design.md, lines: "13" }
     trap: 같은 문서 §2-A·§4-A 본문에 옛 설계 서술이 "이력 참고용"으로 남아 있다
     note: 2026-09-15 폐기
-    status: 확인 대기
+    status: 확정
 
   - id: g03
     type: 함정
@@ -48,7 +48,7 @@ items:
       - { repo: KTB4-13th-wiki, path: docs/ai/4-multistep-pipeline/design.md, lines: "13" }
     trap: 같은 문서 411행에 "LangChain을 V1에 도입하지 않는 결정" 절이 그대로 남아 있다
     note: 2026-09-21 "V1 미도입" 결정을 번복
-    status: 확인 대기
+    status: 확정
 
   - id: g04
     type: 함정
@@ -60,7 +60,7 @@ items:
       - { repo: KTB4-13th-wiki, path: docs/ai/4-multistep-pipeline/design.md, lines: "73" }
     trap: AI-5 163·391행 옛 설계에 "BM25(title+author)"가 남아 있다
     note: 2026-09-24 결정 (AI #120, #169)
-    status: 확인 대기
+    status: 확정
 
   - id: g05
     type: 함정
@@ -71,7 +71,7 @@ items:
       - { repo: KTB4-13th-wiki, path: docs/ai/1-model-api/spec.md, lines: "33" }
     trap: 질문이 옛 값(POST)을 전제한다
     note: 2026-09-16 POST에서 GET으로 바뀜. 질문이 옛 값을 전제하므로 이력 한 줄을 붙여도 된다 (D15 ②)
-    status: 확인 대기
+    status: 확정
 
   - id: g06
     type: 결정 이유
@@ -84,7 +84,7 @@ items:
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/ai/3-architecture-modularization/design.md, lines: "208-218" }
       - { repo: KTB4-13th-wiki, path: docs/ai/3-architecture-modularization/design.md, lines: "63" }
-    status: 확인 대기
+    status: 확정
 
   - id: g07
     type: 결정 이유
@@ -97,7 +97,7 @@ items:
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/ai/6-tool-integration/design.md, lines: "16-22" }
       - { repo: KTB4-13th-wiki, path: docs/ai/6-tool-integration/design.md, lines: "24-27" }
-    status: 확인 대기
+    status: 확정
 
   - id: g08
     type: 명세 값
@@ -106,7 +106,7 @@ items:
     expected: book_id, sales, rating_avg, rating_count, as_of
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/ai/9-data-erd/spec.md, lines: "72" }
-    status: 확인 대기
+    status: 확정
 
   - id: g09
     type: 장애 동작
@@ -117,7 +117,7 @@ items:
       - { repo: KTB4-13th-wiki, path: docs/ai/3-architecture-modularization/design.md, lines: "280" }
       - { repo: KTB4-13th-wiki, path: docs/ai/1-model-api/spec.md, lines: "1225" }
     trap: BE MySQL 장애와 헷갈리기 쉽다. BE MySQL이 죽으면 500이 아니라 복제만 멈춘다
-    status: 확인 대기
+    status: 확정
 
   - id: g10
     type: 클라우드
@@ -126,7 +126,7 @@ items:
     expected: Lint, Test, Build. BE와 AI는 main 병합 후 Docker 이미지를 자동으로 만든다
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/cld/2-ci-pipeline/overview.md, lines: "18-20" }
-    status: 확인 대기
+    status: 확정
 
   - id: g11
     type: 팀 규칙
@@ -136,7 +136,7 @@ items:
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/README.md, lines: "3" }
       - { repo: KTB4-13th-wiki, path: docs/dec/000-decision-log.md, lines: "24" }
-    status: 확인 대기
+    status: 확정
 
   - id: g12
     type: 모름
@@ -146,7 +146,7 @@ items:
     evidence: []
     absent_terms: [Zustand, Redux, Recoil, TanStack, Jotai, MobX, 전역 상태, 상태 관리 라이브러리]
     note: FE 레포 .docs에 있을 수 있다 (v1 소스)
-    status: 확인 대기
+    status: 확정
 
   - id: g13
     type: 레포 횡단
@@ -169,7 +169,7 @@ items:
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/fs/4-business-policy/spec.md, lines: "46" }
       - { repo: KTB4-13th-wiki, path: docs/fs/4-business-policy/spec.md, lines: "98" }
-    status: 확인 대기
+    status: 확정
 
   - id: g15
     type: 명세 값
@@ -181,7 +181,7 @@ items:
       - { repo: KTB4-13th-wiki, path: docs/ai/9-data-erd/spec.md, lines: "87" }
       - { repo: KTB4-13th-wiki, path: docs/ai/9-data-erd/spec.md, lines: "311" }
     trap: 옛 메모에는 "UTC로 해석"으로 잘못 적혀 있었다
-    status: 확인 대기
+    status: 확정
 
   - id: g16
     type: 문서끼리 다름
@@ -192,7 +192,7 @@ items:
       - { repo: KTB4-13th-wiki, path: docs/dec/000-decision-log.md, lines: "27" }
       - { repo: KTB4-13th-wiki, path: docs/fs/2-api/spec.md, lines: "15-20" }
     trap: 한쪽만 답하면 오답이다
-    status: 확인 대기
+    status: 확정
 
   - id: g17
     type: 명세 값
@@ -201,7 +201,7 @@ items:
     expected: GET /api/v1/items, cursor 방식, 권한 공개
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/fs/2-api/spec.md, lines: "161-163" }
-    status: 확인 대기
+    status: 확정
 
   - id: g18
     type: 클라우드
@@ -213,7 +213,7 @@ items:
     evidence:
       - { repo: KTB4-13th-wiki, path: docs/cld/3-cd-pipeline/overview.md, lines: "62-66" }
       - { repo: KTB4-13th-wiki, path: docs/dec/000-decision-log.md, lines: "25" }
-    status: 확인 대기
+    status: 확정
 
   - id: g19
     type: 명세 값
@@ -224,7 +224,7 @@ items:
       - { repo: KTB4-13th-wiki, path: docs/dec/000-decision-log.md, lines: "14" }
       - { repo: KTB4-13th-wiki, path: docs/ai/1-model-api/spec.md, lines: "789" }
     note: 2026-09-28 결정 (AI #246). 기준 커밋 직전에 들어온 최신 결정이라 인덱스가 낡았는지 확인할 수 있다
-    status: 확인 대기
+    status: 확정
 
   - id: g20
     type: 모름
@@ -235,7 +235,7 @@ items:
       - { repo: KTB4-13th-wiki, path: docs/fs/4-business-policy/spec.md, lines: "45" }
     absent_terms: [토스페이먼츠, Toss, PortOne, 포트원, 아임포트, iamport, 이니시스, 나이스페이, PG사]
     trap: 흔한 PG사 이름을 지어내기 쉽다
-    status: 확인 대기
+    status: 확정
 
   - id: g21
     type: 회의 결정
@@ -248,4 +248,4 @@ items:
     note: >-
       2026-09-22 타운홀 회의(wiki #138) 클라우드 보고에는 V2 AI를 "SQS Standard + DLQ 기반 비동기 처리"로
       설계했다고 적혀 있다. 문서에는 반영되지 않았다(drift_cases d08). 회의 이슈를 소스로 넣으면 정답이 바뀐다
-    status: 확인 대기
+    status: 확정
