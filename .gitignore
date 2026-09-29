@@ -1,0 +1,24 @@
+# 비밀 값 (GitHub 토큰, LLM 키)
+.env
+.env.*
+!.env.example
+
+# 소스 레포 캐시와 인덱스 산출물. 소스 문서를 이 레포에 복사하지 않는다.
+.cache/
+data/
+*.sqlite
+*.sqlite3
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# OS
+.DS_Store

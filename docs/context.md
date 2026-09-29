@@ -46,7 +46,7 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 
 | 소스 | 포함 | 제외 | 단계 |
 |---|---|---|---|
-| wiki 레포 | `docs/ai/`, `docs/cld/`, `docs/dec/`, `docs/fs/`, `.agents/skills/ktb4-docs/references/decisions.md` | `backup/`, `docs/inbox/`, 그 밖의 `.agents/`, `.claude/` | v0 |
+| wiki 레포 | `docs/README.md`, `docs/ai/`, `docs/cld/`, `docs/dec/`, `docs/fs/`, `.agents/skills/ktb4-docs/references/decisions.md` | `backup/`, `docs/inbox/`, 그 밖의 `.agents/`, `.claude/` | v0 |
 | AI 레포 | `docs/` | `docs/wiki/`, `.agents/` | v1 |
 | BE | `.docs/`, `docs/adr/`, `AGENTS.md`, `CONTEXT.md`, `README.md` | `.agents/` | v1 |
 | FE | `.docs/`, `AGENTS.md`, `README.md` | `.agents/` | v1 |
@@ -54,6 +54,7 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 | GitHub Wiki | 미정 (풀스택·기획 옛 페이지) | 변환본 29개, 과제 원본 옛 페이지 | 미정 |
 
 - 파일 목록은 `git ls-files` 기준으로 뽑는다. 로컬 워크트리 폴더나 빌드 산출물이 섞이지 않게 하기 위해서다.
+- wiki `4f6a6a6` 기준 v0 포함 파일은 **34개**다: `docs/ai/` 11, `docs/cld/` 16, `docs/dec/` 1, `docs/fs/` 4, `docs/README.md`, `decisions.md` (2026-09-30 확인). `docs/README.md`는 "변환된 문서는 이 폴더에서만 수정한다" 같은 팀 규칙이 있어서 넣는다(골든셋 g11 근거).
 - `.agents/skills/`는 AI 코딩 도구용 지시문이라 원칙적으로 제외한다. 팀 지식이 아니고, 봇의 컨텍스트에 지시문이 섞일 위험이 있다. 예외로 wiki 레포의 `ktb4-docs/references/decisions.md`는 결정 로그가 팀 결정의 상세 문서로 링크하고 있어서 포함한다.
 
 ### 문서 형식에서 알아둘 것
