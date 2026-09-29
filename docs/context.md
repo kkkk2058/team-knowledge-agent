@@ -1,6 +1,8 @@
 # 소스 컨텍스트
 
-> 확인일 **2026-09-28**. 기준 커밋: wiki main `eff2eab`(2026-09-25) · FS 브랜치 `ddfba15`, BE ~~`930370f`(2026-09-27)~~ → `f32eb67`(2026-09-28). 이 날짜 이후의 변화는 반영돼 있지 않다. 판단에 쓰기 전에 오래된 항목은 다시 확인한다.
+> 확인일 **2026-09-28**. 기준 커밋: wiki main `eff2eab`(2026-09-25) · FS 브랜치 `ddfba15`, BE `f32eb67`(2026-09-28). 이 날짜 이후의 변화는 반영돼 있지 않다. 판단에 쓰기 전에 오래된 항목은 다시 확인한다.
+>
+> **wiki main은 같은 날 `4f6a6a6`까지 나아갔다** (PR #181~#185: AI 명세·설계 문서, 결정 로그, ERD 수정 / PR #184: FS 문서 병합). 2026-09-30 확인 시 그 뒤 변화는 없다. 이 문서의 wiki 사실과 줄 번호는 아직 `eff2eab`·`ddfba15` 기준이다.
 >
 > 이 문서를 쓰는 **하루 사이에도** BE가 AI 챗봇 연동을 시작해 "연동 코드 없음"이 틀린 사실이 됐다(§4). 레포는 매일 바뀐다.
 
@@ -16,10 +18,10 @@
 | 레포 | 스택 | 규모 | 주요 코드 위치 | 문서 위치 |
 |---|---|---|---|---|
 | `KTB4-13th-AI` | Python, FastAPI | 167파일, 약 2.6만 줄 | `app/routers/{search,embeddings,chat,feed,extractions,profile,agent}.py`, `app/{core,search,feed,profile,gateway,jobs,chat}/`, `db/migrations/`, `tests/` | `docs/개발-로그.md`, `docs/trouble/` (원본) · `docs/wiki/` (wiki 사본) |
-| `KTB4-13th-BE` | Java, Spring Boot | 390파일 (java 301, `930370f` 기준) | `src/main/java/com/book/core/<도메인>/api/*Controller.java` ~~8개~~ → 10개 (address, auth, cart, category, **onboarding**, order, product, product list, **recommendation**, review; `f32eb67`), `common/config/api/SwaggerConfig.java`, AI 호출 설정 `common/config/ai/`, `src/main/resources/ai.yml` | `.docs/ARCHITECTURE.md`, `.docs/rules/*_RULE.md`, `.docs/.conventions/`, `docs/adr/`, `AGENTS.md`, `CONTEXT.md` |
+| `KTB4-13th-BE` | Java, Spring Boot | 390파일 (java 301, `930370f` 기준) | `src/main/java/com/book/core/<도메인>/api/*Controller.java` 10개 (address, auth, cart, category, **onboarding**, order, product, product list, **recommendation**, review; `f32eb67`), `common/config/api/SwaggerConfig.java`, AI 호출 설정 `common/config/ai/`, `src/main/resources/ai.yml` | `.docs/ARCHITECTURE.md`, `.docs/rules/*_RULE.md`, `.docs/.conventions/`, `docs/adr/`, `AGENTS.md`, `CONTEXT.md` |
 | `KTB4-13th-FE` | TypeScript(TSX), Vite | 42파일 | `src/features/auth`, `src/pages/login` (로그인 화면 수준) | `.docs/*.md` 5개, `AGENTS.md`, `README.md` |
 | `KTB4-13th-CLOUD` | Shell, YAML | 33파일 | `scripts/deploy_{ai,backend,frontend}.sh`, `.github/workflows/{cd,pr-notify,release-latest}.yml`, `releases/*.yml` (자동 생성) | `README.md`, `CONTRIBUTING.md`, 레포 자체 GitHub Wiki |
-| `KTB4-13th-wiki` | Markdown | 추적 md 183개 중 정리본 `docs/` 30여 개 | — | `docs/{ai,cld,dec,fs}/` = **팀 문서 원본** (`fs/`는 2026-09-28 기준 `docs/fs-1-4-conversion` 브랜치) |
+| `KTB4-13th-wiki` | Markdown | 추적 md 183개 중 정리본 `docs/` 30여 개 | — | `docs/{ai,cld,dec,fs}/` = **팀 문서 원본** (`fs/`는 2026-09-28 PR #184로 main에 병합) |
 
 ## 3. 문서 복사 흐름 — 같은 문서가 여러 벌이다
 
@@ -39,7 +41,7 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 - 사이드바 밖 옛 페이지 48개. 두 종류가 섞여 있다.
   - 과제 원본(예: `데이터-컨텍스트-보강-설계`, `모델-API-설계`): 변환본의 구버전이다.
   - 풀스택·기획 문서(예: `Backend-Wiki`, `Frontend-Wiki`, `[1단계]-테이블-명세서`, `[2단계]-API-명세서`, `Product‐Backlog`, `Sprint‐*`, `Roadmap`, `Vision`, `팀-컨벤션`).
-    - **풀스택 4개는 2026-09-28에 `docs/fs/`로 변환됐다** (`docs/fs-1-4-conversion` 브랜치, 원격에 푸시됨, main 병합 여부 미확인): FS-1 테이블 명세 ← `[1단계]-테이블-명세서`, FS-2 API 명세 ← `[2단계]-API-명세서`, FS-3 기술 스택 정의 ← `[3단계]-기술-스택-정의서`, FS-4 비즈니스 정책 ← `비즈니스-정책-위키`.
+    - **풀스택 4개는 2026-09-28에 `docs/fs/`로 변환됐다** (wiki PR #184, 2026-09-28 main에 병합 `4f6a6a6`): FS-1 테이블 명세 ← `[1단계]-테이블-명세서`, FS-2 API 명세 ← `[2단계]-API-명세서`, FS-3 기술 스택 정의 ← `[3단계]-기술-스택-정의서`, FS-4 비즈니스 정책 ← `비즈니스-정책-위키`.
     - 기획 문서는 아직 `docs/`에 대응본이 없다 (`docs/README.md` 기획 목차가 "(변환 후 추가)").
 
 ### 인덱싱 포함·제외 규칙
@@ -81,7 +83,7 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 - **풀스택 테이블** (FS-1): 6개 도메인, 테이블 28개, MySQL InnoDB. 시각 컬럼은 `DATETIME(6)`(타임존 없음), 금액·포인트는 `DECIMAL`. 소프트 삭제는 `deleted_at` + `active_flag`. ERD 원본은 ERDCloud에 있다.
 - **풀스택 기술 스택** (FS-3): Java 25, Gradle, Spring, MySQL(InnoDB), Redis.
 - **비즈니스 정책** (FS-4): 본문에 "최종본"이라고 명시. 결제는 테스트 운영, 배송비 0원, 실제 배송·회수·정산 제외, 탈퇴 신청 후 7일 복구 가능, 포인트 1점 = 1원. 원본 체크리스트 126개 대응표 포함.
-- ~~**BE↔AI 연동 코드는 없다.** BE `main`(930370f) 파일 경로에 AI 호출 관련 항목이 없다(경로만 확인했고 내용 검색은 하지 않음).~~ → **2026-09-28 BE `f32eb67`에서 ③ 챗봇 연동이 시작됐다.**
+- **BE↔AI 연동**: 2026-09-28 BE `f32eb67`에서 ③ 챗봇 연동이 시작됐다.
   - BE `core/recommendation/`: `RecommendationController`가 `@RequestMapping("/api/v1/recommend")` 아래 `POST /chat`, `GET /cards/{recommendationCardId}`를 연다.
   - `infrastructure/client/ai/AiRecommendationClientImpl`이 AI `/recommendations/chat`을 호출한다. 설정은 `ai.yml`(`ai.base-url`, `ai.service-token`).
   - AI 응답 봉투는 `AiChatEnvelope`가 `data`만 읽고 나머지 필드는 무시한다.
@@ -110,13 +112,14 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 | # | 어긋남 | 근거 |
 |---|---|---|
 | 1 | 공통 응답 형식: 결정 로그 09-17은 "FS·AI 공통 `{message, data}`"인데, FS-2는 `{ result, data, error }`. 결정 로그에 형식 변경 기록이 없다 | `dec/000-decision-log.md` 09-17 행, `fs/2-api/spec.md` "공통 응답" |
-| 2 | 검색·추천·챗봇 경로: AI 명세는 ①③④를 "BE가 호출한다"고 하는데, FS-2 엔드포인트 40개에는 검색·추천·챗봇이 없다. **2026-09-28 갱신**: BE 코드(`f32eb67`)에는 이미 `POST /api/v1/recommend/chat`, `GET /api/v1/recommend/cards/{id}`가 생겼다 → "코드에는 있는데 명세에는 없는 API"가 됐다 | `ai/1-model-api/spec.md` §1, `fs/2-api/spec.md`, BE `core/recommendation/api/RecommendationController.java` |
+| 2 | 검색·추천·챗봇 경로: AI 명세는 ①③④를 "BE가 호출한다"고 하는데, FS-2 엔드포인트 40개에는 검색·추천·챗봇이 없다. 반면 BE 코드(`f32eb67`)에는 `POST /api/v1/recommend/chat`, `GET /api/v1/recommend/cards/{id}`가 있다 → "코드에는 있는데 명세에는 없는 API" | `ai/1-model-api/spec.md` §1, `fs/2-api/spec.md`, BE `core/recommendation/api/RecommendationController.java` |
 | 3 | 배송: AI V2 tool에 `delivery.track`(배송 조회)이 있는데, FS-4는 실제 배송을 범위에서 제외하고 FS-2에 배송 엔드포인트가 없다 | `ai/1-model-api/spec.md` tool 표, `fs/4-business-policy/spec.md` §1 |
-| 4 | 명세 대비 구현: FS-2 도메인 12개 중 ~~BE 컨트롤러 파일은 8개~~ → `f32eb67` 기준 컨트롤러 10개(onboarding, recommendation 추가). 회원·결제·쿠폰·포인트·알림 컨트롤러 파일이 없고, 반대로 recommendation은 FS-2에 없다 (파일명 기준, 다른 컨트롤러에 들어 있을 수 있음. 개발 진행 중이라 미구현일 수 있음) | `fs/2-api/spec.md`, BE `src/main/java/com/book/core/*/api/` |
+| 4 | 명세 대비 구현: FS-2 도메인은 12개, BE 컨트롤러는 `f32eb67` 기준 10개(onboarding, recommendation 포함). 회원·결제·쿠폰·포인트·알림 컨트롤러 파일이 없고, 반대로 recommendation은 FS-2에 없다 (파일명 기준, 다른 컨트롤러에 들어 있을 수 있음. 개발 진행 중이라 미구현일 수 있음) | `fs/2-api/spec.md`, BE `src/main/java/com/book/core/*/api/` |
 | 5 | 같은 문서 안 모순: FS-1에서 `active_flag`를 한 곳은 STORED, 다른 곳은 VIRTUAL 생성 컬럼이라고 한다 | `fs/1-table-spec/spec.md` 22행 · 55행 |
 | 6 | 상태 표기: FS-4 frontmatter `status: 작성중`, 본문은 "최종본" | `fs/4-business-policy/spec.md` |
-| ~~7~~ | ~~AI 쪽 미결 사항의 답이 FS 문서에 있음: AI ERD의 "BE 시각 컬럼이 DATETIME인지 TIMESTAMP인지" 미확정 항목 → FS-1은 `DATETIME(6)`. 복제 시 UTC로 해석해야 한다~~ → **철회 (2026-09-28 재확인)**: AI ERD 311행에 이미 "결정 완료: BE 원본은 `DATETIME(6)`, 한국 시간 저장"으로 정리돼 있고, 87행은 복제 시 **Asia/Seoul**로 해석한다고 적혀 있다. 어긋남이 아니었고 "UTC" 서술도 틀렸다. 옛 메모를 믿고 쓴 항목이다 | `ai/9-data-erd/spec.md` 87행 · 311행 |
 | 7 | 같은 문서 안 요약 누락 (후보): AI ERD 19행 "BE 복제" 요약에는 `v_books`, `v_book_popularity`, `v_user_*` 3종만 있고 `v_products`가 없다. 68행 표와 §3.11은 `v_products`를 정의한다(09-25 결정, AI #208) | `ai/9-data-erd/spec.md` 19행 · 68행 · 262행 |
+
+모순처럼 보였지만 아닌 사례(BE 시각 컬럼 해석 시간대)는 [eval/drift_cases.yaml](../eval/drift_cases.yaml)의 `withdrawn`에 있다. 모순 리포트가 이런 오탐을 내지 않는지(정밀도) 확인하는 데 쓴다.
 
 ## 6. 골든셋 후보 질문
 
@@ -136,7 +139,7 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 | 10 | 클라우드 | CI 파이프라인은 어떤 단계로 구성되나? | `cld/2-ci-pipeline/overview.md` |
 | 11 | 팀 규칙 | 변환된 문서는 어디서만 수정하나? | 결정 로그 09-17, `docs/README.md` |
 | 12 | 모름이 정답 | 문서에 없는 내용을 묻는 질문 1~2개 | 없음 (정말 없는지 먼저 확인) |
-| 13 | 레포 횡단 (v2) | 챗봇 요청은 BE 어느 컨트롤러를 거쳐 AI로 가나? | ~~정답: 아직 연동 코드가 없다~~ → 2026-09-28: BE `RecommendationController`(`POST /api/v1/recommend/chat`) → `AiRecommendationClientImpl` → AI `/recommendations/chat` |
+| 13 | 레포 횡단 (v2) | 챗봇 요청은 BE 어느 컨트롤러를 거쳐 AI로 가나? | BE `RecommendationController`(`POST /api/v1/recommend/chat`) → `AiRecommendationClientImpl` → AI `/recommendations/chat` |
 | 14 | 정책 값 | 배송비는 얼마인가? 탈퇴 후 복구할 수 있는 기간은? | `fs/4-business-policy/spec.md` |
 | 15 | 명세 값 | BE 테이블의 시각 컬럼 타입은? AI는 그걸 어느 시간대로 해석하나? | `fs/1-table-spec/spec.md` 33~35행, `ai/9-data-erd/spec.md` 87행 · 311행 |
 | 16 | 문서끼리 다름 | 공통 응답 형식은? (정답: 문서마다 다르다고 답하고 둘 다 인용해야 함) | §5-1 #1 |
@@ -145,6 +148,6 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 ## 7. 아직 확인하지 않은 것
 
 - CLOUD 레포 자체 GitHub Wiki와 wiki 레포 `docs/cld/`의 관계 (같은 내용의 원본과 변환본인지).
-- ~~BE 레포 내용에 AI 연동 흔적이 있는지 (이번에는 파일 경로만 확인함).~~ → ③ 챗봇 연동 확인(`f32eb67`, §4). ①②④⑥⑦ 연동과 BE가 AI에 보내는 요청 필드가 AI 명세와 맞는지는 미확인.
-- `docs/fs-1-4-conversion` 브랜치가 main에 병합됐는지.
+- BE의 ①②④⑥⑦ 연동 여부, BE가 AI에 보내는 요청 필드가 AI 명세와 맞는지 (③ 챗봇 연동만 확인, §4).
+- wiki main `4f6a6a6`에서 바뀐 내용이 §4·§5·§6의 사실과 줄 번호에 주는 영향.
 - FS 문서의 원본이 Notion(API)·ERDCloud(ERD)에도 있는데, wiki 변환본과 어느 쪽이 최신인지.

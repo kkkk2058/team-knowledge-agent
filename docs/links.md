@@ -10,11 +10,25 @@
 | BE | https://github.com/100-hours-a-week/KTB4-13th-BE | main | `f32eb67` (전날 `930370f`) |
 | FE | https://github.com/100-hours-a-week/KTB4-13th-FE | main | — |
 | CLOUD | https://github.com/100-hours-a-week/KTB4-13th-CLOUD | main | — |
-| wiki | https://github.com/100-hours-a-week/KTB4-13th-wiki | main | main `eff2eab` · FS 브랜치 `ddfba15` |
+| wiki | https://github.com/100-hours-a-week/KTB4-13th-wiki | main | `4f6a6a6` (PR #184 병합). context.md·골든셋 줄 번호는 `eff2eab`·`ddfba15` 기준 |
 
-- FS 문서 브랜치: https://github.com/100-hours-a-week/KTB4-13th-wiki/tree/docs/fs-1-4-conversion
+- FS 문서 병합 PR: https://github.com/100-hours-a-week/KTB4-13th-wiki/pull/184
 - GitHub Wiki 발행본: https://github.com/100-hours-a-week/KTB4-13th-wiki/wiki (clone: `https://github.com/100-hours-a-week/KTB4-13th-wiki.wiki.git`)
 - CLOUD 레포 자체 GitHub Wiki: https://github.com/100-hours-a-week/KTB4-13th-CLOUD/wiki (wiki 레포 `docs/cld/`와의 관계 미확인)
+- 열린 PR 목록: 레포 주소 뒤에 `/pulls`. 예: https://github.com/100-hours-a-week/KTB4-13th-AI/pulls
+
+**프로젝트 보드 (KTB4-13th-project)**: https://github.com/orgs/100-hours-a-week/projects/388 — public, 인덱싱은 후보 단계(plan.md §3)
+
+| 칸 | 카드 수 (2026-09-28) | 내용 |
+|---|---|---|
+| Meeting-Agenda | 33 | 회의 안건과 답변 |
+| Troubleshooting | 22 | 오류 원인과 해결 |
+| Daily-Scrum | 18 | 데일리 스크럼 |
+| Sprint-Backlog (Todo · Progress · Done) | 3 · 16 · 31 | 스프린트 할 일 |
+| No Status · Review · Retrospective | 5 · 1 · 1 | 미분류, 스프린트 리뷰, 회고 |
+
+- 회의 안건·트러블슈팅 카드는 **wiki 레포 이슈**다. 제목이 `[Meeting Agenda] ...`, `[Troubleshooting] [AI] 날짜 ...` 형식이다. `gh issue list -R 100-hours-a-week/KTB4-13th-wiki`로 읽힌다.
+- 보드 자체(칸·상태)를 API로 읽으려면 토큰에 `read:project` 권한이 필요하다. 2026-09-28 현재 토큰에는 없다.
 
 ## 2. 핵심 문서 (wiki 레포 원본)
 
@@ -29,15 +43,12 @@
 | AI-6 도구 통합 (MCP 판단) | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/main/docs/ai/6-tool-integration/design.md |
 | AI-9 데이터 ERD | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/main/docs/ai/9-data-erd/spec.md |
 | CLD-2 CI 파이프라인 | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/main/docs/cld/2-ci-pipeline/overview.md |
-| FS-1 테이블 명세 | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/docs/fs-1-4-conversion/docs/fs/1-table-spec/spec.md |
-| FS-2 API 명세 | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/docs/fs-1-4-conversion/docs/fs/2-api/spec.md |
-| FS-3 기술 스택 | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/docs/fs-1-4-conversion/docs/fs/3-tech-stack/design.md |
-| FS-4 비즈니스 정책 | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/docs/fs-1-4-conversion/docs/fs/4-business-policy/spec.md |
+| FS-1 테이블 명세 | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/main/docs/fs/1-table-spec/spec.md |
+| FS-2 API 명세 | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/main/docs/fs/2-api/spec.md |
+| FS-3 기술 스택 | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/main/docs/fs/3-tech-stack/design.md |
+| FS-4 비즈니스 정책 | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/main/docs/fs/4-business-policy/spec.md |
 | 문서 작성·변환 규칙 (ktb4-docs 스킬) | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/main/.agents/skills/ktb4-docs/SKILL.md |
 | 팀 결정 상세 (결정 로그가 링크) | https://github.com/100-hours-a-week/KTB4-13th-wiki/blob/main/.agents/skills/ktb4-docs/references/decisions.md |
-
-FS 문서가 main에 병합되면 `blob/docs/fs-1-4-conversion/` 부분을 `blob/main/`으로 바꾼다.
-
 **wiki 밖 원본** (FS 문서가 가리키는 곳, 인덱싱 여부 미정)
 - FS-2 API 명세의 Notion 원본: https://app.notion.com/p/3d5c174f9e7f8026be26cb360e8e1768?v=02dc174f9e7f83628d96084050756dbd&source=copy_link
 - FS-1 ERD의 ERDCloud 원본: https://www.erdcloud.com/d/p5GP8brvicLfrNGQz
