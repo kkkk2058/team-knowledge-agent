@@ -33,6 +33,7 @@ uv run ruff check
 ```bash
 uv run python -m tka.ingest fetch    # 설정의 소스 레포를 .cache/sources/에 받아 기준 커밋으로 맞춘다
 uv run python -m tka.ingest files    # 포함 규칙으로 고른 파일 수 (wiki 4f6a6a6: 34개). --list로 목록
+uv run python -m tka.ingest chunks   # 청크로 잘라 data/chunks.jsonl에 덤프 (wiki 4f6a6a6: 720개). --list로 청크 제목
 ```
 
 캐시에 로컬 수정이 있으면 덮어쓰지 않고 멈춘다. 캐시 폴더를 지우고 다시 받으면 된다.
