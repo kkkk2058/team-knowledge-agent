@@ -72,7 +72,7 @@ uv run python -m tka.answer eval --model google/gemini-3.5-flash-lite   # 골든
 
 `.env`에 `OPENROUTER_API_KEY`가 필요하다. 모델 기본값은 google/gemini-3.5-flash-lite다. 문장마다 근거가 붙고, 인용(`레포/경로:줄@커밋`)은 LLM이 아니라 코드가 만든다.
 
-튜닝용 20문항 결과 (2026-09-30, 채점은 레포 주인 확인 대기): 봇 90%(18/20), 베이스라인 Claude Code 92%(18.5/20). 봇은 질문당 $0.0009·1.3초, 베이스라인은 $0.127·21.5초. 자세한 비교는 [eval/results/2026-09-30-bot-vs-baseline.md](eval/results/2026-09-30-bot-vs-baseline.md).
+튜닝용 20문항 결과 (2026-09-30): 봇 90%(18/20), 베이스라인 Claude Code 92%(18.5/20). 봇은 질문당 $0.0009·1.3초, 베이스라인은 $0.127·21.5초. 자세한 비교는 [eval/results/2026-09-30-bot-vs-baseline.md](eval/results/2026-09-30-bot-vs-baseline.md).
 
 ### 골든셋 검사
 

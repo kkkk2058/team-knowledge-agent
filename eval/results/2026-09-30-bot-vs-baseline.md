@@ -3,7 +3,7 @@
 - 소스: KTB4-13th-wiki @ 4f6a6a6
 - 봇: `python -m tka.answer eval`, google/gemini-3.5-flash-lite, 검색 RRF 3:1 · Kiwi · 청크 900자 · 결정 행 단위
 - 베이스라인: wiki 레포를 연 Claude Code 새 세션 (plan.md D12)
-- 채점: Claude 초벌, 레포 주인 확인 대기. 두 쪽 모두 같은 기준(`scores.yaml`의 rule)이다
+- 채점: 봇은 레포 주인 확인(2026-09-30), 베이스라인은 Claude 초벌. 두 쪽 모두 같은 기준(`scores.yaml`의 rule)이다
 - **튜닝용 문항이다.** 봇은 이 20문항을 보며 만들었다. 최종 비교는 채점용 질문으로 한다(plan.md §4-1)
 
 ## 요약
