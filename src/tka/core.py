@@ -12,6 +12,7 @@ import re
 from collections.abc import Sequence
 
 from tka.decisions.table import Decision, DecisionTable
+from tka.retrieve.search import DEFAULT_SETTINGS, Hit, SearchIndex, SearchSettings
 
 # 검색어 끝의 조사. "피드는", "LangChain을" 같은 말도 찾게 떼어 낸다.
 _PARTICLE = re.compile(r"(으로|에서|까지|부터|이랑|은|는|이|가|을|를|에|의|로|와|과|도|만)$")
@@ -25,12 +26,18 @@ def find_decisions(
     part: str = "",
     limit: int = 10,
     aliases: Sequence[Sequence[str]] = (),
+    include_superseded: bool = False,
 ) -> list[Decision]:
     """결정을 찾는다. 검색어 개념이 많이 맞는 순, 같으면 최근 순.
 
     검색어가 비면 최근 결정부터. 별칭 묶음(예: ④·feed·피드)은 서로 바꿔 찾는다.
+    대체된 결정은 기본으로 빼고(D17), 그걸 대체한 결정 밑에 "대체한 이전 결정"으로 보여 준다.
     """
-    candidates = _newest_first(d for d in table.decisions if _part_matches(d, part))
+    candidates = _newest_first(
+        d
+        for d in table.decisions
+        if _part_matches(d, part) and (include_superseded or d.status != "대체됨")
+    )
     concepts = _concepts(query, aliases)
     if concepts:
         score = {d.line: sum(_hit(group, d) for group in concepts) for d in candidates}
@@ -78,6 +85,8 @@ def render_decisions(
         if d.superseded_by and d.superseded_by in by_line:
             newer = by_line[d.superseded_by]
             lines.append(f"  대체한 결정: {newer.date} {newer.text}")
+        for older in (o for o in table.decisions if o.superseded_by == d.line):
+            lines.append(f"  대체한 이전 결정: {older.date} {older.text} (로그 {older.line}행)")
         lines.append(f"  근거: {table.citation(d)}")
     return "\n".join(lines)
 
@@ -89,10 +98,79 @@ def get_decision(
     limit: int = 10,
     *,
     aliases: Sequence[Sequence[str]] = (),
+    include_superseded: bool = False,
     note: str | None = None,
 ) -> tuple[str, list[Decision]]:
-    decisions = find_decisions(table, query=query, part=part, limit=limit, aliases=aliases)
+    decisions = find_decisions(
+        table,
+        query=query,
+        part=part,
+        limit=limit,
+        aliases=aliases,
+        include_superseded=include_superseded,
+    )
     return render_decisions(table, decisions, query=query, part=part, note=note), decisions
+
+
+SNIPPET_CHARS = 1500  # 조각 하나를 돌려줄 때의 상한. 넘으면 줄 범위를 알려 주고 자른다
+
+
+def search_docs(
+    index: SearchIndex,
+    table: DecisionTable | None,
+    query: str,
+    k: int = 5,
+    *,
+    settings: SearchSettings = DEFAULT_SETTINGS,
+    note: str | None = None,
+) -> tuple[str, list[Hit]]:
+    """문서 조각을 찾아 근거를 돌려준다 (plan.md D17).
+
+    조각에 결정으로 바뀐 옛 서술(보정 파일 old_text_at)이 들어 있으면 [주의]로 지금 결정을 붙인다.
+    조각 전체가 폐기된 것은 아니라서(같은 조각에 지금도 맞는 내용이 섞여 있다) 빼지 않고 알린다.
+    """
+    hits = index.hybrid(query, k, settings.weights) if query.strip() else []
+    commit = hits[0].chunk.commit[:7] if hits else (table.commit[:7] if table else "?")
+    lines = [
+        f"문서 검색 결과 (기준 커밋 {commit}, 상위 {len(hits)}개, {settings.label()}). "
+        "답 문장은 이 근거를 읽고 직접 쓴다. 결정이 바뀌었는지는 get_decision으로 함께 확인한다."
+    ]
+    if note:
+        lines.append(f"알림: {note}")
+    if not hits:
+        lines.append("맞는 문서 조각이 없다. 검색어를 바꾸거나 get_decision으로 결정 로그를 본다.")
+        return "\n".join(lines), hits
+
+    old_text = _old_text_by_path(table)
+    for rank, hit in enumerate(hits, 1):
+        c = hit.chunk
+        lines += ["", f"[{rank}] {c.repo}/{c.path}:{c.start_line}-{c.end_line}@{c.commit[:7]}"]
+        lines.append(f"제목: {' > '.join((c.doc_title, *c.heading_path))}")
+        if c.callout:
+            lines.append(f"[문서 안내] {c.callout}")
+        for line, d in old_text.get(c.path, []):
+            if c.start_line <= line <= c.end_line:
+                lines.append(
+                    f"[주의] {line}행은 옛 서술이다. 지금 결정: {d.date} {d.text} "
+                    f"(결정 로그 {d.line}행)"
+                )
+        text = c.text
+        if len(text) > SNIPPET_CHARS:
+            text = (
+                f"{text[:SNIPPET_CHARS]}\n…(이하 생략. 전체는 {c.path}:{c.start_line}-{c.end_line})"
+            )
+        lines += ["---", text]
+    return "\n".join(lines), hits
+
+
+def _old_text_by_path(table: DecisionTable | None) -> dict[str, list[tuple[int, Decision]]]:
+    out: dict[str, list[tuple[int, Decision]]] = {}
+    for d in table.decisions if table else ():
+        for ref in d.old_text_at:
+            path, _, line = ref.rpartition(":")
+            if line.isdigit():
+                out.setdefault(path, []).append((int(line), d))
+    return out
 
 
 def _concepts(query: str, aliases: Sequence[Sequence[str]]) -> list[tuple[str, ...]]:

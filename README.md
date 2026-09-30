@@ -45,10 +45,13 @@ uv run python -m tka.decisions check              # 결정 표 행 수 = 로그 
 uv run python -m tka.decisions find "LangChain"   # get_decision과 같은 결과를 터미널에서
 ```
 
-본인 Claude Code에 연결한다 (user 범위, 모든 레포에서 쓴다). 서버는 최신 wiki main을 따라가고 호출을 `data/mcp_calls.jsonl`에 남긴다.
+본인 Claude Code에 연결한다 (user 범위, 모든 레포에서 쓴다). 도구는 `get_decision`(결정 로그)과 `search_docs`(문서 검색) 두 개다. 서버는 최신 wiki main을 따라가고 호출을 `data/mcp_calls.jsonl`에 남긴다.
+
+개발 중인 브랜치가 봇을 깨지 않게, 봇은 main만 따르는 작업 폴더(worktree)에서 돌린다. PR을 병합하면 `git -C <live 폴더> pull`로 갱신한다.
 
 ```bash
-claude mcp add --scope user tka -- uv run --directory /path/to/team-knowledge-agent python -m tka.mcp_server
+git -C /path/to/team-knowledge-agent worktree add --track -b live /path/to/team-knowledge-agent-live origin/main
+claude mcp add --scope user tka -- uv run --directory /path/to/team-knowledge-agent-live python -m tka.mcp_server
 ```
 
 ### 검색

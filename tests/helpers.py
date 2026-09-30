@@ -1,11 +1,15 @@
-"""테스트에서 같이 쓰는 골든셋·소스 저장소 만들기."""
+"""테스트에서 같이 쓰는 골든셋·소스 저장소·가짜 임베딩 만들기."""
 
+import hashlib
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import yaml
 
 from tka.config import Config, Source
+from tka.index.keyword import tokenize_kiwi
+from tka.index.vector import Embedder
 
 
 def make_item(**overrides) -> dict:
@@ -139,3 +143,30 @@ def decision_config(root: Path, commit: str, *, corrections: str | None = SUPERS
         decisions=DecisionsConfig("wiki", "docs/dec/log.md", corrections_path),
         aliases=(("④", "feed", "피드"),),
     )
+
+
+# ── 가짜 임베딩 모델 (e5를 불러오지 않는다) ───────────────────────────
+
+
+class FakeModel:
+    """낱말마다 정해진 방향을 더한 벡터. 같은 낱말이 많을수록 가깝다."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def encode(self, texts, batch_size, normalize_embeddings, convert_to_numpy):
+        self.calls += 1
+        out = []
+        for t in texts:
+            v = np.zeros(64, dtype=np.float32)
+            for word in tokenize_kiwi(t.split(": ", 1)[1]):
+                v[int(hashlib.md5(word.encode()).hexdigest(), 16) % 64] += 1
+            out.append(v / (np.linalg.norm(v) or 1))
+        return np.array(out)
+
+
+def fake_embedder(cache=None):
+    embedder = Embedder(cache)
+    model = FakeModel()
+    embedder.__dict__["model"] = model  # cached_property 자리에 넣어 진짜 모델을 불러오지 않는다
+    return embedder, model

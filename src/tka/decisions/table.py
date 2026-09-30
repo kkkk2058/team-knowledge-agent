@@ -28,6 +28,9 @@ from tka.ingest.files import read_lines
 
 HEADER = ("날짜", "파트", "결정", "영향 파트", "상세")
 DATE_PATTERN = re.compile(r"(\d{2})-(\d{2})")
+# "AI #246 되돌림"처럼 이슈 번호 바로 뒤에 되돌림·번복·철회가 오면
+# 그 이슈의 이전 결정을 뒤집은 행이다.
+REVERTED_ISSUE = re.compile(r"#(\d+)\s*(?:되돌림|번복|철회)")
 _md = MarkdownIt("commonmark").enable("table")
 
 
@@ -115,7 +118,33 @@ def parse_decision_log(
                 line=line,
             )
         )
-    return decisions, problems
+    return link_reverts(decisions), problems
+
+
+def link_reverts(decisions: list[Decision]) -> list[Decision]:
+    """되돌린 이슈 번호를 적은 행이 있으면, 같은 이슈를 적은 이전 행을 대체됨으로 표시한다.
+
+    2026-09-30 실제 사례: "…개인화하지 않음(AI #246 되돌림, AI #266)"이 09-28 "…개인화(AI #246)"를
+    뒤집었다. 로그는 행을 지우지 않고 쌓으므로 이걸 연결하지 않으면 두 행이 모두 현행으로 보인다.
+    이슈 번호가 없는 번복("V1 미도입 번복")은 보정 파일로 적는다.
+    """
+    by_line = {d.line: d for d in decisions}
+    for newer in decisions:
+        for issue in REVERTED_ISSUE.findall(newer.text):
+            for older in decisions:
+                if older is newer or not _is_earlier(older, newer):
+                    continue
+                same_issue = re.search(rf"#{issue}(?!\d)", older.text)
+                if same_issue and not REVERTED_ISSUE.search(older.text):
+                    by_line[older.line] = replace(
+                        by_line[older.line], status="대체됨", superseded_by=newer.line
+                    )
+    return [by_line[d.line] for d in decisions]
+
+
+def _is_earlier(a: Decision, b: Decision) -> bool:
+    """a가 b보다 먼저 정해졌나. 로그는 최신이 위라서 같은 날이면 아래 줄이 먼저다."""
+    return a.date < b.date or (a.date == b.date and a.line > b.line)
 
 
 def _table_rows(tokens: list[Token], log_path: str) -> list[tuple[int, list[tuple[str, Token]]]]:

@@ -2,11 +2,11 @@ import asyncio
 import json
 
 import pytest
-from helpers import decision_config, git, make_decision_repo
+from helpers import decision_config, fake_embedder, git, make_decision_repo
 
 from tka import mcp_server
 from tka.ingest.fetch import FetchError
-from tka.mcp_server import DecisionService, build_server
+from tka.mcp_server import KnowledgeService, build_server
 
 
 class FakeClock:
@@ -24,14 +24,21 @@ def origin(tmp_path):
     return repo, commit
 
 
-def _live(tmp_path, origin, clock=None):
+def _live(tmp_path, origin, clock=None, embedder=None):
     repo, commit = origin
     config = decision_config(tmp_path, commit)
-    return DecisionService(config, tmp_path, live=True, clock=clock or FakeClock(), url=str(repo))
+    return KnowledgeService(
+        config,
+        tmp_path,
+        live=True,
+        clock=clock or FakeClock(),
+        url=str(repo),
+        embedder=embedder,
+    )
 
 
-def _call(server, **args) -> str:
-    result = asyncio.run(server.call_tool("get_decision", args))
+def _call(server, tool="get_decision", **args) -> str:
+    result = asyncio.run(server.call_tool(tool, args))
     return result.content[0].text
 
 
@@ -40,10 +47,18 @@ def test_tool_is_listed_read_only_with_when_to_call(tmp_path, origin):
 
     tools = asyncio.run(server.list_tools())
 
-    assert [t.name for t in tools] == ["get_decision"]
-    assert "코드에 쓰거나 PR을 점검하기 전에 부른다" in tools[0].description
-    assert tools[0].annotations.read_only_hint is True
-    assert set(tools[0].input_schema["properties"]) == {"query", "part", "limit"}
+    by_name = {t.name: t for t in tools}
+    assert set(by_name) == {"get_decision", "search_docs"}
+    assert "코드에 쓰거나 PR을 점검하기 전에 부른다" in by_name["get_decision"].description
+    assert "코드에 쓰기 전에 부른다" in by_name["search_docs"].description
+    assert all(t.annotations.read_only_hint is True for t in tools)
+    assert set(by_name["get_decision"].input_schema["properties"]) == {
+        "query",
+        "part",
+        "limit",
+        "include_superseded",
+    }
+    assert set(by_name["search_docs"].input_schema["properties"]) == {"query", "k"}
 
 
 def test_live_service_fetches_main_into_live_cache(tmp_path, origin):
@@ -110,7 +125,7 @@ def test_table_problems_are_noted(tmp_path, origin):
         commit,
         corrections="corrections: [{date: '09-01', contains: 없음, replaces: x}]",
     )
-    service = DecisionService(config, tmp_path, url=str(repo), clock=FakeClock())
+    service = KnowledgeService(config, tmp_path, url=str(repo), clock=FakeClock())
 
     _, note = service.table()
 
@@ -128,7 +143,12 @@ def test_call_returns_evidence_and_logs_the_call(tmp_path, origin):
     assert f"@{commit[:7]}" in text
     record = json.loads(log.read_text(encoding="utf-8").strip())
     assert record["tool"] == "get_decision"
-    assert record["args"] == {"query": "피드", "part": "", "limit": 10}
+    assert record["args"] == {
+        "query": "피드",
+        "part": "",
+        "limit": 10,
+        "include_superseded": False,
+    }
     assert record["commit"] == commit
     assert record["returned"] == ["docs/dec/log.md:8"]
 
@@ -145,8 +165,64 @@ def test_unwritable_log_does_not_break_the_tool(tmp_path, origin, capsys):
 def test_pinned_service_uses_configured_commit(tmp_path):
     repo = tmp_path / ".cache" / "sources" / "wiki"
     commit = make_decision_repo(repo)
-    service = DecisionService(decision_config(tmp_path, commit), tmp_path, live=False)
+    service = KnowledgeService(decision_config(tmp_path, commit), tmp_path, live=False)
 
     table, note = service.table()
 
     assert (table.commit, note) == (commit, None)
+
+
+# ── search_docs ───────────────────────────────────────────────────
+
+
+def test_search_index_is_built_lazily_and_only_once(tmp_path, origin):
+    embedder, model = fake_embedder()
+    service = _live(tmp_path, origin, embedder=embedder)
+
+    service.table()
+    assert model.calls == 0  # get_decision만 쓰면 임베딩하지 않는다
+
+    index, table, _ = service.search_index()
+    again, _, _ = service.search_index()
+    assert again is index
+    assert {c.path for c in index.chunks} == {
+        "docs/ai/spec.md",
+        "docs/ai/design.md",
+        "docs/dec/log.md",
+    }
+    assert index.chunks[0].commit == table.commit
+
+
+def test_new_main_rebuilds_the_search_index(tmp_path, origin):
+    repo, _ = origin
+    clock = FakeClock()
+    embedder, _ = fake_embedder()
+    service = _live(tmp_path, origin, clock, embedder)
+    first, _, _ = service.search_index()
+    (repo / "docs" / "ai" / "new.md").write_text("# 새 문서\n배송비는 0원\n", encoding="utf-8")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "new doc")
+
+    clock.now = mcp_server.REFRESH_SECONDS
+    second, _, _ = service.search_index()
+
+    assert second is not first
+    assert "docs/ai/new.md" in {c.path for c in second.chunks}
+
+
+def test_search_docs_returns_evidence_and_logs(tmp_path, origin):
+    _, commit = origin
+    embedder, _ = fake_embedder()
+    log = tmp_path / "data" / "calls.jsonl"
+    server = build_server(_live(tmp_path, origin, embedder=embedder), log)
+
+    text = _call(server, "search_docs", query="설계 도입", k=2)
+
+    assert text.startswith(f"문서 검색 결과 (기준 커밋 {commit[:7]}, 상위 2개")
+    assert f"wiki/docs/ai/design.md:1-3@{commit[:7]}" in text
+    # 보정 파일이 design.md 2행을 옛 서술로 적었다 → [주의]로 지금 결정을 붙인다
+    assert "[주의] 2행은 옛 서술이다. 지금 결정: 2026-09-21 ③⑤ LangChain 도입" in text
+    record = json.loads(log.read_text(encoding="utf-8").strip())
+    assert record["tool"] == "search_docs"
+    assert record["args"] == {"query": "설계 도입", "k": 2}
+    assert record["returned"][0] == "docs/ai/design.md:1-3"
