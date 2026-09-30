@@ -219,10 +219,10 @@ MCP로 부를 때는 "LLM의 역할" 칸의 답 작성을 부르는 쪽(Claude C
 - [x] `.gitignore`: `.env`, 인덱스 산출물
 - [x] 골든셋 20개 (튜닝용, 근거 경로 포함, 레포 주인 확인 2026-09-30)
 - [ ] 채점용 질문 따로 (팀원 질문, 개발 중 기록)
-- [ ] 베이스라인 점수 (Claude Code)
-- [ ] 결정 표 → `get_decision` MCP 연결
-- [ ] 검색 recall@5
-- [ ] CLI v0로 골든셋 답변
+- [x] 베이스라인 점수 (Claude Code, 2026-09-30)
+- [x] 결정 표 → `get_decision` MCP 연결
+- [x] 검색 recall@5
+- [x] CLI v0로 골든셋 답변 (2026-09-30, 채점은 레포 주인 확인 대기)
 
 ## 6. 함정
 
@@ -246,7 +246,7 @@ MCP로 부를 때는 "LLM의 역할" 칸의 답 작성을 부르는 쪽(Claude C
 
 ## 7. 열린 질문
 
-- LLM 모델. 제공자는 OpenRouter로 정했다(2026-09-30). 모델은 구조화 출력을 지원하는 것 중에서 골든셋으로 비교해 고른다.
+- LLM 모델: OpenRouter의 google/gemini-3.5-flash-lite로 시작했다(2026-09-30, 세 모델 비교, implementation.md §1). 채점용 질문이 생기면 다시 비교한다.
 - 임베딩 모델: multilingual-e5-small로 시작했다(벡터만 recall@5 72%). 다른 후보는 채점용 질문이 생기면 비교한다.
 - GitHub 토큰: public 레포 읽기 전용 fine-grained 토큰으로 충분한지.
 - GitHub Wiki 옛 기획 페이지를 넣을지. 기획 문서는 아직 `docs/`로 변환되지 않았다. 풀스택 4개는 `docs/fs/`로 변환돼 v0에 포함한다.

@@ -112,7 +112,7 @@ class KnowledgeService:
         assert self._table is not None
         if self._index is None:
             self._index = build_index(
-                self._config, self.root, self._source, self.embedder, self.settings
+                self._config, self.root, self._source, self.embedder, self.settings, self._table
             )
         return self._index, self._table, self._notes()
 

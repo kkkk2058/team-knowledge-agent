@@ -63,6 +63,17 @@ uv run python -m tka.retrieve eval                                  # 방식별 
 
 처음 한 번은 e5-small 모델을 내려받고 청크를 임베딩한다(1분 안팎). 임베딩은 `data/index.sqlite`에 캐시한다.
 
+### 답변
+
+```bash
+uv run python -m tka.answer ask "① 검색에 BM25를 쓰나?"          # 기준 커밋 문서로 답하고 근거를 붙인다
+uv run python -m tka.answer eval --model google/gemini-3.5-flash-lite   # 골든셋 v0 → eval/results/<날짜>-bot-<모델>/
+```
+
+`.env`에 `OPENROUTER_API_KEY`가 필요하다. 모델 기본값은 google/gemini-3.5-flash-lite다. 문장마다 근거가 붙고, 인용(`레포/경로:줄@커밋`)은 LLM이 아니라 코드가 만든다.
+
+튜닝용 20문항 결과 (2026-09-30, 채점은 레포 주인 확인 대기): 봇 90%(18/20), 베이스라인 Claude Code 92%(18.5/20). 봇은 질문당 $0.0009·1.3초, 베이스라인은 $0.127·21.5초. 자세한 비교는 [eval/results/2026-09-30-bot-vs-baseline.md](eval/results/2026-09-30-bot-vs-baseline.md).
+
 ### 골든셋 검사
 
 ```bash

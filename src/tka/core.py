@@ -141,7 +141,7 @@ def search_docs(
         lines.append("맞는 문서 조각이 없다. 검색어를 바꾸거나 get_decision으로 결정 로그를 본다.")
         return "\n".join(lines), hits
 
-    old_text = _old_text_by_path(table)
+    old_text = old_text_by_path(table)
     for rank, hit in enumerate(hits, 1):
         c = hit.chunk
         lines += ["", f"[{rank}] {c.repo}/{c.path}:{c.start_line}-{c.end_line}@{c.commit[:7]}"]
@@ -163,7 +163,8 @@ def search_docs(
     return "\n".join(lines), hits
 
 
-def _old_text_by_path(table: DecisionTable | None) -> dict[str, list[tuple[int, Decision]]]:
+def old_text_by_path(table: DecisionTable | None) -> dict[str, list[tuple[int, Decision]]]:
+    """보정 파일의 옛 서술 위치: 경로 → [(줄, 그 서술을 바꾼 결정)]."""
     out: dict[str, list[tuple[int, Decision]]] = {}
     for d in table.decisions if table else ():
         for ref in d.old_text_at:
