@@ -4,12 +4,15 @@
   (모델 카드에 명시, implementation.md ④).
 - 임베딩은 SQLite 파일(설정의 index_path)에 글 내용의 해시로 저장해 다시 쓴다. 같은 글이면
   청크 크기·실험이 바뀌어도 다시 계산하지 않는다. 캐시는 커밋하지 않는다(data/).
+- SQLite 연결은 읽고 쓸 때마다 짧게 연다. MCP 서버는 도구 함수를 다른 스레드에서 부르는데
+  sqlite3 연결은 만든 스레드에서만 쓸 수 있다.
 """
 
 from __future__ import annotations
 
 import hashlib
 import sqlite3
+from contextlib import closing
 from functools import cached_property
 from pathlib import Path
 
@@ -23,21 +26,24 @@ class Embedder:
     def __init__(self, cache_path: Path | None, model_name: str = MODEL) -> None:
         self.model_name = model_name
         self.cache_path = cache_path
-        self._db: sqlite3.Connection | None = None
         if cache_path is not None:
             cache_path.parent.mkdir(parents=True, exist_ok=True)
-            self._db = sqlite3.connect(cache_path)
-            self._db.execute(
-                "CREATE TABLE IF NOT EXISTS embeddings ("
-                " model TEXT, text_hash TEXT, dim INTEGER, vector BLOB,"
-                " PRIMARY KEY (model, text_hash))"
-            )
+            with closing(sqlite3.connect(cache_path)) as db, db:
+                db.execute(
+                    "CREATE TABLE IF NOT EXISTS embeddings ("
+                    " model TEXT, text_hash TEXT, dim INTEGER, vector BLOB,"
+                    " PRIMARY KEY (model, text_hash))"
+                )
 
     @cached_property
     def model(self):
         from sentence_transformers import SentenceTransformer  # 무거워서 쓸 때만 불러온다
 
-        return SentenceTransformer(self.model_name)
+        try:
+            # 받아 둔 모델이 있으면 허브에 확인 요청을 보내지 않는다 (처음 검색이 20초 → 수 초)
+            return SentenceTransformer(self.model_name, local_files_only=True)
+        except OSError:
+            return SentenceTransformer(self.model_name)
 
     def passages(self, texts: list[str]) -> np.ndarray:
         return self._encode([f"passage: {t}" for t in texts])
@@ -62,24 +68,25 @@ class Embedder:
         return np.stack([found[h] for h in hashes])
 
     def _load(self, hashes: list[str]) -> dict[str, np.ndarray]:
-        if self._db is None or not hashes:
+        if self.cache_path is None or not hashes:
             return {}
         found = {}
-        for chunk in range(0, len(hashes), 500):
-            part = hashes[chunk : chunk + 500]
-            rows = self._db.execute(
-                f"SELECT text_hash, vector FROM embeddings WHERE model = ? AND text_hash IN "
-                f"({','.join('?' * len(part))})",
-                [self.model_name, *part],
-            )
-            found.update({h: np.frombuffer(v, dtype=np.float32) for h, v in rows})
+        with closing(sqlite3.connect(self.cache_path)) as db:
+            for start in range(0, len(hashes), 500):
+                part = hashes[start : start + 500]
+                rows = db.execute(
+                    f"SELECT text_hash, vector FROM embeddings WHERE model = ? AND text_hash IN "
+                    f"({','.join('?' * len(part))})",
+                    [self.model_name, *part],
+                )
+                found.update({h: np.frombuffer(v, dtype=np.float32) for h, v in rows})
         return found
 
     def _save(self, vectors: dict[str, np.ndarray]) -> None:
-        if self._db is None:
+        if self.cache_path is None:
             return
-        self._db.executemany(
-            "INSERT OR REPLACE INTO embeddings VALUES (?, ?, ?, ?)",
-            [(self.model_name, h, len(v), v.tobytes()) for h, v in vectors.items()],
-        )
-        self._db.commit()
+        with closing(sqlite3.connect(self.cache_path)) as db, db:
+            db.executemany(
+                "INSERT OR REPLACE INTO embeddings VALUES (?, ?, ?, ?)",
+                [(self.model_name, h, len(v), v.tobytes()) for h, v in vectors.items()],
+            )

@@ -13,7 +13,9 @@ from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 
+from tka import core
 from tka.config import Config, load_config
+from tka.decisions.table import build_table
 from tka.evaluation import dump_yaml
 from tka.golden import load_golden
 from tka.index.vector import MODEL, Embedder
@@ -26,11 +28,10 @@ from tka.retrieve.evaluate import (
     config_hash,
     render_report,
     run,
-    searcher,
     summarize,
     targets,
 )
-from tka.retrieve.search import SearchIndex
+from tka.retrieve.search import DEFAULT_SETTINGS, SearchIndex
 
 VARIANTS = [
     Variant("키워드 · 공백", "keyword", tokenizer="words"),
@@ -50,8 +51,14 @@ VARIANTS = [
     Variant("RRF 1:1 · Kiwi · 청크 900자", "hybrid", max_chars=900),
     Variant("RRF 3:1 · Kiwi · 청크 900자", "hybrid", max_chars=900, weights=(3, 1)),
 ]
-# 골든셋(튜닝용) recall@5가 가장 높은 방식 (eval/results/2026-09-30-retrieval)
+# 골든셋(튜닝용) recall@5가 가장 높은 방식 (eval/results/2026-09-30-retrieval). MCP도 이걸 쓴다.
 DEFAULT = VARIANTS[-1]
+assert (DEFAULT.tokenizer, DEFAULT.text_mode, DEFAULT.max_chars, DEFAULT.weights) == (
+    DEFAULT_SETTINGS.tokenizer,
+    DEFAULT_SETTINGS.text_mode,
+    DEFAULT_SETTINGS.max_chars,
+    DEFAULT_SETTINGS.weights,
+), "평가 기본값과 search_docs 기본값이 어긋났다"
 
 
 class Indexes:
@@ -104,13 +111,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "search":
             if not args.query:
                 parser.error("search에는 질문이 필요하다")
-            for rank, hit in enumerate(
-                searcher(indexes.get(DEFAULT), DEFAULT)(args.query, args.k), 1
-            ):
-                c = hit.chunk
-                title = " > ".join((c.doc_title, *c.heading_path))
-                print(f"{rank}. {c.id}  {title}")
-                print(f"   {' '.join(c.text.split())[:140]}")
+            table = build_table(config, args.root) if config.decisions else None
+            text, _ = core.search_docs(indexes.get(DEFAULT), table, args.query, args.k)
+            print(text)  # MCP search_docs와 같은 글
             return 0
         return _eval(args, config, indexes)
     except FetchError as e:

@@ -1,11 +1,9 @@
-import hashlib
-
 import numpy as np
 import pytest
+from helpers import fake_embedder as _embedder
 
 from tka.golden import Evidence, GoldenItem, GoldenSet
 from tka.index.keyword import BM25, tokenize_kiwi, tokenize_ngrams, tokenize_words
-from tka.index.vector import Embedder
 from tka.ingest.chunk import Chunk
 from tka.retrieve.evaluate import (
     Variant,
@@ -49,30 +47,6 @@ def test_bm25_unknown_terms_score_zero():
 # ── 가짜 임베딩 모델 ──────────────────────────────────────────────
 
 
-class FakeModel:
-    """낱말마다 정해진 방향을 더한 벡터. 같은 낱말이 많을수록 가깝다."""
-
-    def __init__(self) -> None:
-        self.calls = 0
-
-    def encode(self, texts, batch_size, normalize_embeddings, convert_to_numpy):
-        self.calls += 1
-        out = []
-        for t in texts:
-            v = np.zeros(64, dtype=np.float32)
-            for word in tokenize_kiwi(t.split(": ", 1)[1]):
-                v[int(hashlib.md5(word.encode()).hexdigest(), 16) % 64] += 1
-            out.append(v / (np.linalg.norm(v) or 1))
-        return np.array(out)
-
-
-def _embedder(cache=None) -> tuple[Embedder, FakeModel]:
-    embedder = Embedder(cache)
-    model = FakeModel()
-    embedder.__dict__["model"] = model  # cached_property 자리에 넣어 진짜 모델을 불러오지 않는다
-    return embedder, model
-
-
 def test_embedder_uses_prefixes_and_caches(tmp_path):
     embedder, model = _embedder(tmp_path / "index.sqlite")
     seen = []
@@ -88,6 +62,27 @@ def test_embedder_uses_prefixes_and_caches(tmp_path):
     again, again_model = _embedder(tmp_path / "index.sqlite")  # 파일 캐시는 프로세스를 넘어 남는다
     again.passages(["검색 설명"])
     assert again_model.calls == 0
+
+
+def test_embedder_cache_works_from_another_thread(tmp_path):
+    # MCP 서버는 도구 함수를 다른 스레드에서 부른다. sqlite3 연결을 스레드 사이에 나눠 쓰면 깨진다.
+    import threading
+
+    embedder, _ = _embedder(tmp_path / "index.sqlite")
+    embedder.passages(["피드 설명"])
+    errors = []
+
+    def work():
+        try:
+            embedder.passages(["피드 설명", "새 글"])
+        except Exception as e:  # 스레드 안 예외를 밖으로 전한다
+            errors.append(e)
+
+    thread = threading.Thread(target=work)
+    thread.start()
+    thread.join()
+
+    assert errors == []
 
 
 # ── 색인·RRF ──────────────────────────────────────────────────────

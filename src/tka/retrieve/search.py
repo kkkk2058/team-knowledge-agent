@@ -7,15 +7,35 @@ RRF: 문서 점수 = Σ 가중치 / (60 + 순위). 점수 크기가 다른 두 �
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
+from tka.config import Config, Source
 from tka.index.keyword import BM25, TOKENIZERS
 from tka.index.vector import Embedder
-from tka.ingest.chunk import Chunk
+from tka.ingest.chunk import Chunk, chunk_files
+from tka.ingest.fetch import source_dir
+from tka.ingest.files import select_files
 
 RRF_K = 60
 POOL = 100  # RRF에 넣을 각 결과의 앞쪽 개수
+
+
+@dataclass(frozen=True)
+class SearchSettings:
+    tokenizer: str = "kiwi"
+    text_mode: str = "context"
+    max_chars: int = 900
+    weights: tuple[float, float] = (3, 1)  # RRF (키워드, 벡터)
+
+    def label(self) -> str:
+        kw, vec = self.weights
+        return f"RRF {kw:g}:{vec:g} · {self.tokenizer} · 청크 {self.max_chars}자"
+
+
+# 골든셋(튜닝용) recall@5가 가장 높은 방식: 94% (17/18), eval/results/2026-09-30-retrieval
+DEFAULT_SETTINGS = SearchSettings()
 
 
 @dataclass(frozen=True)
@@ -77,3 +97,16 @@ class SearchIndex:
             return []
         order = np.argsort(-scores, kind="stable")[:k]
         return [Hit(self.chunks[i], float(scores[i])) for i in order if scores[i] > 0]
+
+
+def build_index(
+    config: Config,
+    root: Path,
+    source: Source,
+    embedder: Embedder | None,
+    settings: SearchSettings = DEFAULT_SETTINGS,
+) -> SearchIndex:
+    """받아 둔 소스(기준 커밋)의 문서를 골라 자르고 색인한다."""
+    files = select_files(config, root, source)
+    _, chunks = chunk_files(files, source_dir(config, root, source), settings.max_chars)
+    return SearchIndex(chunks, embedder, tokenizer=settings.tokenizer, text_mode=settings.text_mode)

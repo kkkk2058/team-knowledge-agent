@@ -270,3 +270,37 @@ def test_bad_decision_config(tmp_path, patch, message):
 
     with pytest.raises(ConfigError, match=message):
         load_config(path)
+
+
+# ── 되돌림 자동 연결 ──────────────────────────────────────────────
+
+
+def test_revert_with_issue_number_supersedes_the_earlier_row():
+    # 2026-09-30 실제 사례: 09-30 행이 "#246 되돌림"으로 09-28 행(#246)을 뒤집었다
+    log = DECISION_LOG.replace(
+        "| 09-28 | AI | ④ 피드는 GET으로 부른다 | AI, BE | [모델 API 명세](../ai/spec.md#feed) |",
+        "| 09-30 | AI | 취향 벡터 없으면 개인화 안 함(AI #246 되돌림, AI #266) | AI | - |\n"
+        "| 09-28 | AI | 취향 벡터 없어도 이력으로 개인화(AI #246) | AI | - |\n"
+        "| 09-28 | AI | 관계없는 결정(AI #2460) | AI | - |",
+    )
+    decisions, problems = _parse(log)
+
+    def row(prefix):
+        return next(d for d in decisions if d.text.startswith(prefix))
+
+    newer, older = row("취향 벡터 없으면"), row("취향 벡터 없어도")
+    assert problems == []
+    assert (older.status, older.superseded_by) == ("대체됨", newer.line)
+    assert newer.status == "현행"
+    assert row("관계없는 결정").status == "현행"  # #2460은 #246이 아니다
+
+
+def test_revert_does_not_touch_later_rows():
+    log = DECISION_LOG + "| 09-01 | AI | 옛날 결정(AI #7 되돌림) | AI | - |\n"
+    log = log.replace(
+        "| 09-10 | CLD | 배포는 Recreate | - |", "| 09-10 | CLD | 배포는 Recreate(#7) | - |"
+    )
+
+    decisions, _ = _parse(log)
+
+    assert all(d.status == "현행" for d in decisions)  # 09-10 행이 09-01 되돌림보다 나중이다
