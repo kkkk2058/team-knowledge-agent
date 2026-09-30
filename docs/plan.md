@@ -247,14 +247,13 @@ MCP로 부를 때는 "LLM의 역할" 칸의 답 작성을 부르는 쪽(Claude C
 ## 7. 열린 질문
 
 - LLM 모델. 제공자는 OpenRouter로 정했다(2026-09-30). 모델은 구조화 출력을 지원하는 것 중에서 골든셋으로 비교해 고른다.
-- 임베딩 모델: 문서가 한국어라 서비스와 같은 multilingual-e5-small로 시작할지, 다른 후보와 골든셋으로 비교할지.
-- 저장소: 로컬 파일 기반(Chroma, sqlite-vec 등) vs Postgres + pgvector.
+- 임베딩 모델: multilingual-e5-small로 시작했다(벡터만 recall@5 72%). 다른 후보는 채점용 질문이 생기면 비교한다.
 - GitHub 토큰: public 레포 읽기 전용 fine-grained 토큰으로 충분한지.
 - GitHub Wiki 옛 기획 페이지를 넣을지. 기획 문서는 아직 `docs/`로 변환되지 않았다. 풀스택 4개는 `docs/fs/`로 변환돼 v0에 포함한다.
 - Notion(API 명세)·ERDCloud(ERD)처럼 wiki 밖에 있는 원본을 소스로 넣을지.
 - 외부 LLM으로 팀 문서를 보내는 것에 대한 팀 합의. 레포가 public이라 유출 위험은 낮다.
 - 채점용 질문을 팀원에게 받을 수 있는지(몇 개, 언제).
-- `search_docs` MCP 연결 기준으로 삼을 recall@5 값. 로드맵 5단계에서 베이스라인 결과를 보고 정한다.
+- `search_docs` MCP 연결 기준으로 삼을 recall@5 값. 제안: 베이스라인 Claude Code가 답에서 골든셋 근거 줄을 인용한 비율(78%, 14/18) 이상. 지금 검색은 94%(17/18)다 (2026-09-30).
 
 ## 8. B안(다른 팀으로 확장) 전환 조건
 

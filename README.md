@@ -51,6 +51,15 @@ uv run python -m tka.decisions find "LangChain"   # get_decision과 같은 결�
 claude mcp add --scope user tka -- uv run --directory /path/to/team-knowledge-agent python -m tka.mcp_server
 ```
 
+### 검색
+
+```bash
+uv run python -m tka.retrieve search "탈퇴하면 며칠 안에 복구돼?"   # 기본 방식: RRF 3:1 · Kiwi · 청크 900자
+uv run python -m tka.retrieve eval                                  # 방식별 recall@5 → eval/results/<날짜>-retrieval/
+```
+
+처음 한 번은 e5-small 모델을 내려받고 청크를 임베딩한다(1분 안팎). 임베딩은 `data/index.sqlite`에 캐시한다.
+
 ### 골든셋 검사
 
 ```bash

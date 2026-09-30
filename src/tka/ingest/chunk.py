@@ -24,7 +24,7 @@ from markdown_it.token import Token
 
 from tka.ingest.files import SourceFile
 
-MAX_CHARS = 1500  # 한 청크 본문의 목표 상한. 쪼갤 수 없는 블록 하나가 넘으면 그대로 두고 표시한다
+MAX_CHARS = 900  # 한 청크 본문의 목표 상한. 쪼갤 수 없는 블록 하나가 넘으면 그대로 두고 표시한다
 _md = MarkdownIt("commonmark").enable("table")
 _SUMMARY = re.compile(r"<summary>(.*?)</summary>", re.S | re.I)
 _TAG = re.compile(r"<[^>]+>")
@@ -86,7 +86,11 @@ def normalize_line(line: str) -> str:
     return unicodedata.normalize("NFC", line).replace(" ", " ")
 
 
-def chunk_file(file: SourceFile, text: str) -> tuple[Document, list[Chunk]]:
+def chunk_file(
+    file: SourceFile, text: str, max_chars: int | None = None
+) -> tuple[Document, list[Chunk]]:
+    """max_chars를 안 주면 MAX_CHARS. 청크 크기 비교 실험에서 바꿔 본다."""
+    limit = max_chars or MAX_CHARS
     lines = [normalize_line(line) for line in text.split("\n")]
     meta, body_start = _frontmatter(lines, file.path)
     # frontmatter 줄은 빈 줄로 바꿔 파서에 넘긴다. 그래야 토큰의 줄 번호가 원문과 같다.
@@ -103,13 +107,16 @@ def chunk_file(file: SourceFile, text: str) -> tuple[Document, list[Chunk]]:
         updated=_str_or_none(meta.get("updated")),
         callout=callout,
     )
-    return doc, list(_chunks(doc, tokens, parse_lines))
+    return doc, list(_chunks(doc, tokens, parse_lines, limit))
 
 
-def chunk_files(files: list[SourceFile], directory: Path) -> tuple[list[Document], list[Chunk]]:
+def chunk_files(
+    files: list[SourceFile], directory: Path, max_chars: int | None = None
+) -> tuple[list[Document], list[Chunk]]:
     docs, chunks = [], []
     for file in files:
-        doc, file_chunks = chunk_file(file, (directory / file.path).read_text(encoding="utf-8"))
+        text = (directory / file.path).read_text(encoding="utf-8")
+        doc, file_chunks = chunk_file(file, text, max_chars)
         docs.append(doc)
         chunks.extend(file_chunks)
     return docs, chunks
@@ -165,7 +172,7 @@ def _frontmatter(lines: list[str], path: str) -> tuple[dict, int]:
     raise ChunkError(f"{path}: frontmatter가 닫히지 않았다")
 
 
-def _chunks(doc: Document, tokens: list[Token], lines: list[str]):
+def _chunks(doc: Document, tokens: list[Token], lines: list[str], limit: int):
     # 제목 경로 스택: (종류, 헤딩 수준, 글). 종류는 heading 또는 details.
     stack: list[tuple[str, int, str]] = []
     blocks: list[_Block] = []
@@ -178,7 +185,7 @@ def _chunks(doc: Document, tokens: list[Token], lines: list[str]):
 
     def flush():
         in_details = any(kind == "details" for kind, _, _ in stack)
-        yield from _emit(doc, path(), blocks, in_details, anchor[0])
+        yield from _emit(doc, path(), blocks, in_details, anchor[0], limit)
         blocks.clear()
         anchor[0] = None
 
@@ -225,7 +232,7 @@ def _chunks(doc: Document, tokens: list[Token], lines: list[str]):
                         pass
             continue
 
-        blocks.extend(_blocks(token, tokens, i, lines))
+        blocks.extend(_blocks(token, tokens, i, lines, limit))
     yield from flush()
 
 
@@ -235,6 +242,7 @@ def _emit(
     blocks: list[_Block],
     in_details: bool,
     anchor: int | None,
+    limit: int,
 ):
     if not blocks:
         return
@@ -244,12 +252,12 @@ def _emit(
     current: list[_Block] = []
     size = 0
     for b in blocks:
-        starts_label = total > MAX_CHARS and b.label is not None
-        too_big = current and size + b.size > MAX_CHARS
+        starts_label = total > limit and b.label is not None
+        too_big = current and size + b.size > limit
         if current and (starts_label or too_big):
             parts.append((label, current))
             current, size = [], 0
-        if b.label is not None and total > MAX_CHARS:
+        if b.label is not None and total > limit:
             label = b.label
         current.append(b)
         size += b.size
@@ -267,34 +275,36 @@ def _emit(
             end_line=part[-1].end,
             text="\n\n".join(b.text for b in part),
             callout=doc.callout,
-            oversized=any(b.size > MAX_CHARS for b in part),
+            oversized=any(b.size > limit for b in part),
             in_details=in_details,
         )
 
 
-def _blocks(token: Token, tokens: list[Token], i: int, lines: list[str]) -> list[_Block]:
+def _blocks(
+    token: Token, tokens: list[Token], i: int, lines: list[str], limit: int
+) -> list[_Block]:
     """블록 하나. 너무 긴 표는 행 사이에서(머리행을 다시 붙여), 긴 목록은 항목 사이에서 나눈다.
 
     행이나 항목 중간은 자르지 않는다. 코드 블록은 나누지 않는다.
     """
     block = _block(token, tokens, i, lines)
-    if block is None or block.size <= MAX_CHARS:
+    if block is None or block.size <= limit:
         return [block] if block else []
     if token.type == "table_open":
-        return _split_table(token, lines)
+        return _split_table(token, lines, limit)
     if token.type in ("bullet_list_open", "ordered_list_open"):
-        return _split_list(token, tokens, i, lines)
+        return _split_list(token, tokens, i, lines, limit)
     return [block]
 
 
-def _split_table(token: Token, lines: list[str]) -> list[_Block]:
+def _split_table(token: Token, lines: list[str], limit: int) -> list[_Block]:
     start, end = token.map
     header = "\n".join(lines[start : start + 2])  # 머리행 + 구분행
     parts: list[_Block] = []
     group_start, rows = start, []
     for r in range(start + 2, end):
         row = lines[r]
-        if rows and len(header) + sum(len(x) + 1 for x in rows) + len(row) > MAX_CHARS:
+        if rows and len(header) + sum(len(x) + 1 for x in rows) + len(row) > limit:
             parts.append(_Block(group_start, r, "\n".join([header, *rows])))
             group_start, rows = r, []
         rows.append(row)
@@ -303,7 +313,9 @@ def _split_table(token: Token, lines: list[str]) -> list[_Block]:
     return parts
 
 
-def _split_list(token: Token, tokens: list[Token], i: int, lines: list[str]) -> list[_Block]:
+def _split_list(
+    token: Token, tokens: list[Token], i: int, lines: list[str], limit: int
+) -> list[_Block]:
     items = []
     for t in tokens[i + 1 :]:
         if t.level == token.level and t.type == token.type.replace("_open", "_close"):
@@ -314,7 +326,7 @@ def _split_list(token: Token, tokens: list[Token], i: int, lines: list[str]) -> 
     group: list[list[int]] = []
     for item in items:
         size = sum(len("\n".join(lines[a:b])) for a, b in group)
-        if group and size + len("\n".join(lines[item[0] : item[1]])) > MAX_CHARS:
+        if group and size + len("\n".join(lines[item[0] : item[1]])) > limit:
             parts.append(_list_part(group, lines))
             group = []
         group.append(item)

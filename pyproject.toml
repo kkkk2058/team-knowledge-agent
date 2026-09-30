@@ -5,9 +5,12 @@ description = "북적북적 팀 레포의 문서를 근거로 팀 질문에 답�
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "kiwipiepy>=0.24.0",
     "markdown-it-py>=4.2.0",
     "mcp>=2.2.0",
+    "numpy>=2.5.3",
     "pyyaml>=6.0.3",
+    "sentence-transformers>=6.1.0",
 ]
 
 [dependency-groups]

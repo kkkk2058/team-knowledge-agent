@@ -46,12 +46,16 @@ def test_ai5_callout_is_on_every_chunk(wiki):
 
 def test_fs2_is_split_into_40_endpoints(wiki):
     _, _, chunks = wiki
-    endpoints = [c for c in _of(chunks, "docs/fs/2-api/spec.md") if c.in_details]
+    # 긴 엔드포인트는 청크 두 개로 더 나뉠 수 있어 서로 다른 엔드포인트 제목을 센다
+    endpoints = {
+        title
+        for c in _of(chunks, "docs/fs/2-api/spec.md")
+        if c.in_details
+        for title in c.heading_path
+        if re.match(r"(GET|POST|PUT|PATCH|DELETE) /api/", title)
+    }
 
     assert len(endpoints) == 40
-    assert all(
-        re.match(r"(GET|POST|PUT|PATCH|DELETE) /api/", c.heading_path[-1]) for c in endpoints
-    )
 
 
 def test_fs1_has_28_tables(wiki):
