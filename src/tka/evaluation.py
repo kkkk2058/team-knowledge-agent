@@ -121,7 +121,11 @@ def check_citations(
     checks = []
     for c in citations:
         repo, path = next(
-            ((r, p) for r, s in sources.items() if (p := _resolve_in_source(c.raw_path, s))),
+            (
+                (r, p)
+                for r, s in sources.items()
+                if (p := _resolve_in_source(c.raw_path.removeprefix(f"{r}/"), s))
+            ),
             (None, None),
         )
         if repo is None or path is None:
@@ -328,7 +332,7 @@ def render_summary(run: Run, results: list[ItemResult]) -> str:
     ]
     times = [r.answer.meta["duration_ms"] for r in answered if r.answer.meta.get("duration_ms")]
     detail = {k: v for k, v in run.detail.items() if k != "prompt_template"}
-    avg_cost = f"${sum(costs) / len(costs):.3f}" if costs else "—"
+    avg_cost = f"${sum(costs) / len(costs):.4f}" if costs else "—"  # 봇은 질문당 $0.001 아래다
     avg_time = f"{sum(times) / len(times) / 1000:.1f}초" if times else "—"
     lines = [
         f"# {run.run_id}",

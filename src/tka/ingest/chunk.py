@@ -58,6 +58,7 @@ class Chunk:
     callout: str | None
     oversized: bool  # 쪼갤 수 없는 블록 하나가 MAX_CHARS를 넘는다
     in_details: bool  # <details> 안의 내용
+    kind: str = "doc"  # doc · decision (결정 로그 한 행, tka.retrieve.search.decision_chunks)
 
     @property
     def id(self) -> str:

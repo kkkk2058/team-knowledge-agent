@@ -1,0 +1,64 @@
+scored_by: Claude 초벌 채점 (2026-09-30), 레포 주인 확인 대기
+rule: 베이스라인(2026-09-30-claude-code)과 같은 기준. 함정 문항은 지금 값을 맞혔는지로 본다. 이력 언급은 점수에 넣지 않는다 (plan.md D15)
+items:
+  - id: g01
+    verdict: 정답
+  - id: g02
+    verdict: 정답
+    reason: 폐기를 맞혔고 지금은 v_books.description만 쓴다고 답했다
+  - id: g03
+    verdict: 정답
+    reason: 쓴다(③⑤ LangChain)를 결정 로그 23행으로 맞혔다. ⑦ LangGraph는 빠졌다
+  - id: g04
+    verdict: 정답
+  - id: g05
+    verdict: 정답
+    reason: GET이라고 맞혔다. 경로(/recommendations/feed)는 적지 않았다
+  - id: g06
+    verdict: 부분
+    failure: 근거 찾고 틀림
+    reason: >-
+      세 이유 중 둘(필터+벡터를 한 SQL로, 버그가 주문·재고를 못 망가뜨림)만 답했다.
+      장애 격리(BE MySQL이 죽어도 AI는 복제본으로 응답, AI-3:218)는 넘긴 근거에 있었는데 빠뜨렸다
+  - id: g07
+    verdict: 정답
+    reason: 도구 7개 고정·상대가 BE 하나라는 핵심 이유를 맞혔다. MCP와 같은 양식으로 적어 둔 대비책은 빠졌다
+  - id: g08
+    verdict: 정답
+  - id: g09
+    verdict: 정답
+  - id: g10
+    verdict: 정답
+    reason: Lint·Test·Build와 PR에서 이미지를 만들지 않는다는 것을 맞혔다
+  - id: g11
+    verdict: 정답
+  - id: g12
+    verdict: 정답
+    reason: 모른다고 답했고 지어내지 않았다
+  - id: g14
+    verdict: 정답
+  - id: g15
+    verdict: 부분
+    failure: 근거 못 찾음
+    reason: >-
+      Asia/Seoul 해석은 맞혔다. 그런데 첫 문장에서 AI 쪽 타입(timestamptz)을 BE 타입처럼 답했고,
+      BE 타입 DATETIME(6)의 정밀도가 없다. FS-1 테이블 명세(34행)가 검색에 안 걸렸다
+  - id: g16
+    verdict: 정답
+    reason: 결정 로그 {message, data}와 FS-2 {result, data, error}를 둘 다 근거와 함께 알렸다 (베이스라인은 오답)
+  - id: g17
+    verdict: 정답
+  - id: g18
+    verdict: 정답
+  - id: g19
+    verdict: 정답
+    reason: 기준 커밋 4f6a6a6의 결정 로그 14행으로 맞혔다
+  - id: g20
+    verdict: 정답
+    reason: PG사 이름을 지어내지 않고 모른다고 답했다
+  - id: g21
+    verdict: 오답
+    failure: 근거 못 찾음
+    reason: >-
+      SQS 결정은 v0 인덱스 밖(backup/)에만 있다. 문서 범위를 밝히지 않고 "아니오"라고 단정했다(골든셋 함정 기준 오답).
+      AI 문서의 야간 배치·선택지 서술과 FS-3의 RabbitMQ 검토(523행)는 근거대로 옮겼다

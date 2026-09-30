@@ -30,6 +30,8 @@ class Variant:
     text_mode: str = "context"
     max_chars: int = 1500
     weights: tuple[float, float] = (1, 1)  # hybrid: (키워드, 벡터)
+    decision_rows: bool = False  # 결정 로그 행을 따로 검색 단위로
+    aliases: bool = False  # 설정의 별칭 묶음을 키워드 검색에 쓴다
 
 
 @dataclass(frozen=True)

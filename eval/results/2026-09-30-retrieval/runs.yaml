@@ -4,7 +4,7 @@ meta:
   평가 문항: 골든셋 v0 중 근거가 있는 18문항 (튜닝용)
   임베딩 모델: intfloat/multilingual-e5-small
   설정 해시: 7db6f81edbef
-  이 레포 커밋: 999f903 + 커밋 안 한 변경
+  이 레포 커밋: 7640e95 + 커밋 안 한 변경
 runs:
 - variant:
     name: 키워드 · 공백
@@ -15,6 +15,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -223,6 +225,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -431,6 +435,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -639,6 +645,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -847,6 +855,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -1055,6 +1065,8 @@ runs:
     weights:
     - 3
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -1263,6 +1275,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -1471,6 +1485,8 @@ runs:
     weights:
     - 3
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -1679,6 +1695,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -1887,6 +1905,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -2095,6 +2115,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -2303,6 +2325,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -2511,6 +2535,8 @@ runs:
     weights:
     - 1
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -2719,6 +2745,8 @@ runs:
     weights:
     - 3
     - 1
+    decision_rows: false
+    aliases: false
   items:
   - item_id: g01
     item_type: 명세 값
@@ -2907,6 +2935,426 @@ runs:
     - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:201-216
     - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:176-199
     - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:312-316
+  - item_id: g21
+    item_type: 문서끼리 다름
+    first_hit: 1
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/8-final-integration/design.md:238-245
+    - KTB4-13th-wiki/docs/fs/3-tech-stack/design.md:521-523
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:54-65
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:24-43
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:86-92
+- variant:
+    name: RRF 3:1 · Kiwi · 청크 900자 · 결정 행 단위
+    method: hybrid
+    tokenizer: kiwi
+    text_mode: context
+    max_chars: 900
+    weights:
+    - 3
+    - 1
+    decision_rows: true
+    aliases: false
+  items:
+  - item_id: g01
+    item_type: 명세 값
+    first_hit: 1
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:189-195
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:97-102
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:208-240
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:432-443
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:303-305
+  - item_id: g02
+    item_type: 함정
+    first_hit: 1
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:28-28
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:215-217
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:11-13
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:184-184
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:129-133
+  - item_id: g03
+    item_type: 함정
+    first_hit: 4
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:379-379
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:411-420
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:98-107
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:11-15
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:547-560
+  - item_id: g04
+    item_type: 함정
+    first_hit: 1
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:20-20
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:370-394
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:160-172
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:194-198
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:73-73
+  - item_id: g05
+    item_type: 함정
+    first_hit: 2
+    covered: 1
+    total: 1
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:29-42
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:24-43
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:76-81
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:104-108
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:297-306
+  - item_id: g06
+    item_type: 결정 이유
+    first_hit: 5
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:255-260
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1217-1224
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:238-240
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:196-206
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:208-220
+  - item_id: g07
+    item_type: 결정 이유
+    first_hit: 3
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:11-13
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:101-112
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:16-23
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:51-63
+    - KTB4-13th-wiki/docs/ai/8-final-integration/design.md:92-100
+  - item_id: g08
+    item_type: 명세 값
+    first_hit: 1
+    covered: 1
+    total: 1
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:65-74
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:82-88
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:501-509
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:159-169
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1217-1224
+  - item_id: g09
+    item_type: 장애 동작
+    first_hit: 3
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:208-220
+    - KTB4-13th-wiki/docs/ai/7-infra-monitoring/design.md:99-111
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:271-281
+    - KTB4-13th-wiki/docs/ai/7-infra-monitoring/design.md:254-265
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:352-361
+  - item_id: g10
+    item_type: 클라우드
+    first_hit: 4
+    covered: 1
+    total: 1
+    top:
+    - KTB4-13th-wiki/docs/cld/2-ci-pipeline/overview.md:127-143
+    - KTB4-13th-wiki/docs/cld/2-ci-pipeline/overview.md:187-220
+    - KTB4-13th-wiki/.agents/skills/ktb4-docs/references/decisions.md:21-21
+    - KTB4-13th-wiki/docs/cld/2-ci-pipeline/overview.md:14-20
+    - KTB4-13th-wiki/docs/cld/2-ci-pipeline/overview.md:410-422
+  - item_id: g11
+    item_type: 팀 규칙
+    first_hit: 2
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/.agents/skills/ktb4-docs/references/decisions.md:1-14
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:24-24
+    - KTB4-13th-wiki/docs/README.md:1-6
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:26-26
+    - KTB4-13th-wiki/.agents/skills/ktb4-docs/references/decisions.md:21-21
+  - item_id: g14
+    item_type: 정책 값
+    first_hit: 2
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:522-532
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:87-101
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:447-457
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:577-586
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:623-631
+  - item_id: g15
+    item_type: 명세 값
+    first_hit: 1
+    covered: 2
+    total: 3
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:82-88
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:306-311
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:44-48
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1217-1224
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:117-117
+  - item_id: g16
+    item_type: 문서끼리 다름
+    first_hit: 1
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/fs/2-api/spec.md:15-21
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:27-27
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1255-1263
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:16-23
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1265-1278
+  - item_id: g17
+    item_type: 명세 값
+    first_hit: 1
+    covered: 1
+    total: 1
+    top:
+    - KTB4-13th-wiki/docs/fs/2-api/spec.md:160-163
+    - KTB4-13th-wiki/docs/fs/2-api/spec.md:174-177
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:575-580
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:563-573
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1231-1237
+  - item_id: g18
+    item_type: 클라우드
+    first_hit: 3
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/cld/1-initial-deploy/ops-cost.md:14-20
+    - KTB4-13th-wiki/docs/ai/7-infra-monitoring/design.md:11-19
+    - KTB4-13th-wiki/docs/cld/3-cd-pipeline/overview.md:60-66
+    - KTB4-13th-wiki/docs/ai/7-infra-monitoring/design.md:148-155
+    - KTB4-13th-wiki/docs/ai/8-final-integration/design.md:192-204
+  - item_id: g19
+    item_type: 명세 값
+    first_hit: null
+    covered: 0
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:110-116
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:104-108
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:201-216
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:176-199
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:312-316
+  - item_id: g21
+    item_type: 문서끼리 다름
+    first_hit: 1
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/8-final-integration/design.md:238-245
+    - KTB4-13th-wiki/docs/fs/3-tech-stack/design.md:521-523
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:54-65
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:24-43
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:86-92
+- variant:
+    name: RRF 3:1 · Kiwi · 청크 900자 · 결정 행 단위 · 별칭
+    method: hybrid
+    tokenizer: kiwi
+    text_mode: context
+    max_chars: 900
+    weights:
+    - 3
+    - 1
+    decision_rows: true
+    aliases: true
+  items:
+  - item_id: g01
+    item_type: 명세 값
+    first_hit: 1
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:189-195
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:97-102
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:208-240
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:432-443
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:214-225
+  - item_id: g02
+    item_type: 함정
+    first_hit: 1
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:28-28
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:215-217
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:11-13
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:184-184
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:129-133
+  - item_id: g03
+    item_type: 함정
+    first_hit: 4
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:379-379
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:411-420
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:98-107
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:11-15
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:547-560
+  - item_id: g04
+    item_type: 함정
+    first_hit: 1
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:20-20
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:370-394
+    - KTB4-13th-wiki/docs/ai/5-context-augmentation/design.md:160-172
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:194-198
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:73-73
+  - item_id: g05
+    item_type: 함정
+    first_hit: 2
+    covered: 1
+    total: 1
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:29-42
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:24-43
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:76-81
+    - KTB4-13th-wiki/docs/ai/1-model-api/appendix.md:209-239
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:104-108
+  - item_id: g06
+    item_type: 결정 이유
+    first_hit: 5
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:255-260
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1217-1224
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:238-240
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:196-206
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:208-220
+  - item_id: g07
+    item_type: 결정 이유
+    first_hit: 3
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:11-13
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:101-112
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:16-23
+    - KTB4-13th-wiki/docs/ai/6-tool-integration/design.md:51-63
+    - KTB4-13th-wiki/docs/ai/8-final-integration/design.md:92-100
+  - item_id: g08
+    item_type: 명세 값
+    first_hit: 1
+    covered: 1
+    total: 1
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:65-74
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:82-88
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:501-509
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:159-169
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1217-1224
+  - item_id: g09
+    item_type: 장애 동작
+    first_hit: 3
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:208-220
+    - KTB4-13th-wiki/docs/ai/7-infra-monitoring/design.md:99-111
+    - KTB4-13th-wiki/docs/ai/3-architecture-modularization/design.md:271-281
+    - KTB4-13th-wiki/docs/ai/7-infra-monitoring/design.md:254-265
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1082-1112
+  - item_id: g10
+    item_type: 클라우드
+    first_hit: 4
+    covered: 1
+    total: 1
+    top:
+    - KTB4-13th-wiki/docs/cld/2-ci-pipeline/overview.md:127-143
+    - KTB4-13th-wiki/docs/cld/2-ci-pipeline/overview.md:187-220
+    - KTB4-13th-wiki/.agents/skills/ktb4-docs/references/decisions.md:21-21
+    - KTB4-13th-wiki/docs/cld/2-ci-pipeline/overview.md:14-20
+    - KTB4-13th-wiki/docs/cld/2-ci-pipeline/overview.md:410-422
+  - item_id: g11
+    item_type: 팀 규칙
+    first_hit: 2
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/.agents/skills/ktb4-docs/references/decisions.md:1-14
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:24-24
+    - KTB4-13th-wiki/docs/README.md:1-6
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:26-26
+    - KTB4-13th-wiki/.agents/skills/ktb4-docs/references/decisions.md:21-21
+  - item_id: g14
+    item_type: 정책 값
+    first_hit: 2
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:522-532
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:87-101
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:447-457
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:577-586
+    - KTB4-13th-wiki/docs/fs/4-business-policy/spec.md:623-631
+  - item_id: g15
+    item_type: 명세 값
+    first_hit: 1
+    covered: 2
+    total: 3
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:82-88
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:306-311
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:44-48
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1217-1224
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:117-117
+  - item_id: g16
+    item_type: 문서끼리 다름
+    first_hit: 1
+    covered: 2
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/fs/2-api/spec.md:15-21
+    - KTB4-13th-wiki/docs/dec/000-decision-log.md:27-27
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1255-1263
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:16-23
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1265-1278
+  - item_id: g17
+    item_type: 명세 값
+    first_hit: 1
+    covered: 1
+    total: 1
+    top:
+    - KTB4-13th-wiki/docs/fs/2-api/spec.md:160-163
+    - KTB4-13th-wiki/docs/fs/2-api/spec.md:174-177
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:575-580
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:563-573
+    - KTB4-13th-wiki/docs/ai/1-model-api/spec.md:1231-1237
+  - item_id: g18
+    item_type: 클라우드
+    first_hit: 3
+    covered: 1
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/cld/1-initial-deploy/ops-cost.md:14-20
+    - KTB4-13th-wiki/docs/ai/7-infra-monitoring/design.md:148-155
+    - KTB4-13th-wiki/docs/cld/3-cd-pipeline/overview.md:60-66
+    - KTB4-13th-wiki/docs/ai/7-infra-monitoring/design.md:11-19
+    - KTB4-13th-wiki/docs/cld/3-cd-pipeline/overview.md:138-151
+  - item_id: g19
+    item_type: 명세 값
+    first_hit: 6
+    covered: 0
+    total: 2
+    top:
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:104-108
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:110-116
+    - KTB4-13th-wiki/docs/ai/7-infra-monitoring/design.md:25-33
+    - KTB4-13th-wiki/docs/ai/4-multistep-pipeline/design.md:176-199
+    - KTB4-13th-wiki/docs/ai/9-data-erd/spec.md:91-95
   - item_id: g21
     item_type: 문서끼리 다름
     first_hit: 1

@@ -180,7 +180,7 @@ def test_summary_counts_verdicts_citations_and_types(tmp_path, source):
     assert "| 답이 없는 문항 (오류 포함) | 1 |" in summary
     assert "| 함정 | 50% (0.5/1) |" in summary
     assert "| g03 | 모름 | 오답 | 0/0 | — |" in summary
-    assert "| 질문당 평균 비용 | $0.150 |" in summary  # 오류 문항은 빼고 평균
+    assert "| 질문당 평균 비용 | $0.1500 |" in summary  # 오류 문항은 빼고 평균
     assert "| 질문당 평균 응답 시간 | 15.0초 |" in summary
     assert "| 폐기 내용 인용 | 1 |" in summary and "| 근거 못 찾음 | 1 |" in summary
 

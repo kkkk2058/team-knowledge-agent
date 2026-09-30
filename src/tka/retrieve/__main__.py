@@ -15,7 +15,7 @@ from pathlib import Path
 
 from tka import core
 from tka.config import Config, load_config
-from tka.decisions.table import build_table
+from tka.decisions.table import DecisionTable, build_table
 from tka.evaluation import dump_yaml
 from tka.golden import load_golden
 from tka.index.vector import MODEL, Embedder
@@ -31,7 +31,7 @@ from tka.retrieve.evaluate import (
     summarize,
     targets,
 )
-from tka.retrieve.search import DEFAULT_SETTINGS, SearchIndex
+from tka.retrieve.search import DEFAULT_SETTINGS, SearchIndex, with_decision_rows
 
 VARIANTS = [
     Variant("키워드 · 공백", "keyword", tokenizer="words"),
@@ -50,26 +50,52 @@ VARIANTS = [
     Variant("키워드 · Kiwi · 청크 900자", "keyword", max_chars=900),
     Variant("RRF 1:1 · Kiwi · 청크 900자", "hybrid", max_chars=900),
     Variant("RRF 3:1 · Kiwi · 청크 900자", "hybrid", max_chars=900, weights=(3, 1)),
+    # 7단계: 결정 로그 행 하나를 검색 단위 하나로 (6단계에서 놓친 g19)
+    Variant(
+        "RRF 3:1 · Kiwi · 청크 900자 · 결정 행 단위",
+        "hybrid",
+        max_chars=900,
+        weights=(3, 1),
+        decision_rows=True,
+    ),
+    Variant(
+        "RRF 3:1 · Kiwi · 청크 900자 · 결정 행 단위 · 별칭",
+        "hybrid",
+        max_chars=900,
+        weights=(3, 1),
+        decision_rows=True,
+        aliases=True,
+    ),
 ]
-# 골든셋(튜닝용) recall@5가 가장 높은 방식 (eval/results/2026-09-30-retrieval). MCP도 이걸 쓴다.
-DEFAULT = VARIANTS[-1]
-assert (DEFAULT.tokenizer, DEFAULT.text_mode, DEFAULT.max_chars, DEFAULT.weights) == (
+# 골든셋(튜닝용)에서 가장 좋은 방식 (eval/results/2026-09-30-retrieval). MCP도 이걸 쓴다.
+DEFAULT = next(v for v in VARIANTS if v.name == "RRF 3:1 · Kiwi · 청크 900자 · 결정 행 단위")
+assert (
+    DEFAULT.tokenizer,
+    DEFAULT.text_mode,
+    DEFAULT.max_chars,
+    DEFAULT.weights,
+    DEFAULT.decision_rows,
+    DEFAULT.aliases,
+) == (
     DEFAULT_SETTINGS.tokenizer,
     DEFAULT_SETTINGS.text_mode,
     DEFAULT_SETTINGS.max_chars,
     DEFAULT_SETTINGS.weights,
+    DEFAULT_SETTINGS.decision_rows,
+    DEFAULT_SETTINGS.aliases,
 ), "평가 기본값과 search_docs 기본값이 어긋났다"
 
 
 class Indexes:
-    """(청크 크기, 토크나이저, 글 방식)마다 색인을 한 번만 만든다."""
+    """(청크 크기, 토크나이저, 글 방식, 결정 행 단위)마다 색인을 한 번만 만든다."""
 
     def __init__(self, config: Config, root: Path, with_vectors: bool = True) -> None:
         self.config, self.root = config, root
         self.source = config.sources[0]
         self.embedder = Embedder(root / config.index_path) if with_vectors else None
         self._chunks: dict[int, list[Chunk]] = {}
-        self._indexes: dict[tuple[int, str, str], SearchIndex] = {}
+        self._indexes: dict[tuple[int, str, str, bool, bool], SearchIndex] = {}
+        self._table: DecisionTable | None = None
 
     def chunks(self, max_chars: int) -> list[Chunk]:
         if max_chars not in self._chunks:
@@ -81,15 +107,27 @@ class Indexes:
         return self._chunks[max_chars]
 
     def get(self, v: Variant) -> SearchIndex:
-        key = (v.max_chars, v.tokenizer, v.text_mode)
+        key = (v.max_chars, v.tokenizer, v.text_mode, v.decision_rows, v.aliases)
         if key not in self._indexes:
+            chunks = self.chunks(v.max_chars)
+            if v.decision_rows:
+                chunks = with_decision_rows(chunks, self.table())
             self._indexes[key] = SearchIndex(
-                self.chunks(v.max_chars),
+                chunks,
                 self.embedder,
                 tokenizer=v.tokenizer,
                 text_mode=v.text_mode,
+                aliases=self.config.aliases if v.aliases else (),
             )
         return self._indexes[key]
+
+    def built(self) -> list[SearchIndex]:
+        return list(self._indexes.values())
+
+    def table(self) -> DecisionTable:
+        if self._table is None:
+            self._table = build_table(self.config, self.root)
+        return self._table
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -111,7 +149,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "search":
             if not args.query:
                 parser.error("search에는 질문이 필요하다")
-            table = build_table(config, args.root) if config.decisions else None
+            table = indexes.table() if config.decisions else None
             text, _ = core.search_docs(indexes.get(DEFAULT), table, args.query, args.k)
             print(text)  # MCP search_docs와 같은 글
             return 0
@@ -135,8 +173,8 @@ def _eval(args, config: Config, indexes: Indexes) -> int:
     best = max(runs, key=lambda r: _rank_key(summarize(r[1])))[0].name
     titles = {
         c.id: " > ".join((c.doc_title, *c.heading_path))
-        for n in {v.max_chars for v in VARIANTS}
-        for c in indexes.chunks(n)
+        for index in indexes.built()
+        for c in index.chunks
     }
     meta = {
         "날짜": date.today().isoformat(),
