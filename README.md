@@ -12,10 +12,45 @@
 |---|---|
 | 소스 | wiki 레포 `docs/` ([config/ktb13.yaml](config/ktb13.yaml)) |
 | 기준 커밋 | wiki `4f6a6a6`. 평가는 브랜치가 아니라 고정 커밋으로 한다 |
-| 입구 | CLI 하나 |
+| 입구 | `tka` 명령, 본인 Claude Code의 MCP 도구 |
 | 평가 | 골든셋 20문항(튜닝용), 베이스라인 Claude Code 새 세션. 최종 비교는 따로 모은 채점용 질문으로 |
 
 v0에서 하지 않는 것: 코드 읽기, 다른 레포 문서, 이슈·PR, 쓰기 행동. 단계별 계획은 [docs/plan.md](docs/plan.md) §4, 구현 순서는 [docs/implementation.md](docs/implementation.md) §4.
+
+## 쓰기
+
+봇은 main만 따르는 작업 폴더(live)에서 돌린다. 개발 중인 브랜치가 봇을 깨지 않게 하려는 것이다. PR을 병합하면 `git -C <live 폴더> pull`로 갱신한다.
+
+```bash
+git -C /path/to/team-knowledge-agent worktree add --track -b live /path/to/team-knowledge-agent-live origin/main
+alias tka='uv run --directory /path/to/team-knowledge-agent-live tka'
+```
+
+```bash
+tka decision "feed 메서드"              # 결정 로그의 결정 (상태·이전 결정·인용)
+tka search "상품 목록 API 페이지 방식"    # 문서 조각과 인용
+tka ask "홈 피드는 POST로 부르나?"       # 문서를 근거로 답한다 (LLM, 질문당 약 $0.001)
+tka log                                 # 호출 로그 (MCP와 tka). --empty면 결과 없음·모름만
+```
+
+- 기본은 최신 wiki main을 따른다(10분마다 확인). `--pinned`면 평가 기준 커밋(`4f6a6a6`)이다.
+- `ask`는 live 폴더의 `.env`나 환경 변수에 `OPENROUTER_API_KEY`가 필요하다. 모델 기본값은 google/gemini-3.5-flash-lite다. 문장마다 근거가 붙고, 인용(`레포/경로:줄@커밋`)은 LLM이 아니라 코드가 만든다.
+- 처음 한 번은 e5-small 모델을 내려받고 청크를 임베딩한다(1분 안팎). 그 뒤 `search`·`ask`는 모델을 불러오느라 10초 안팎 걸린다.
+- 호출은 `data/calls.jsonl`에 남는다(커밋하지 않음). 틀린 답과 "모름"은 골든셋 재료다.
+
+### Claude Code에 연결 (MCP)
+
+```bash
+claude mcp add --scope user tka -- uv run --directory /path/to/team-knowledge-agent-live python -m tka.mcp_server
+```
+
+도구는 `get_decision`(결정 로그)과 `search_docs`(문서 검색) 두 개이고, 답이 아니라 근거를 돌려준다(답은 Claude Code가 쓴다). 도구 설명만으로는 잘 부르지 않으므로 `~/.claude/CLAUDE.md`에 언제 부를지 한 줄 적는다(plan.md §1-1). 예:
+
+```text
+KTB4-13th 레포에서 다른 파트의 API·명세 필드·팀 결정은 추측하지 말고 tka MCP 도구(get_decision, search_docs)로 확인한다.
+```
+
+튜닝용 20문항 결과 (2026-09-30): 봇 90%(18/20), 베이스라인 Claude Code 92%(18.5/20). 봇은 질문당 $0.0009·1.3초, 베이스라인은 $0.127·21.5초. 자세한 비교는 [eval/results/2026-09-30-bot-vs-baseline.md](eval/results/2026-09-30-bot-vs-baseline.md).
 
 ## 개발
 
@@ -27,6 +62,7 @@ uv run ruff check
 
 - 소스 레포 캐시(`.cache/`)와 인덱스(`data/`)는 커밋하지 않는다. 소스 문서는 항상 원본 레포에서 가져온다.
 - `.env`에는 OpenRouter 키(`OPENROUTER_API_KEY`)를 넣는다 (답변 단계부터 필요). 커밋하지 않는다.
+- 아래 명령은 개발·평가용이고 설정의 기준 커밋 문서로 돈다. 사용자 명령은 위의 `tka`다.
 
 ### 소스 가져오기
 
@@ -38,41 +74,15 @@ uv run python -m tka.ingest chunks   # 청크로 잘라 data/chunks.jsonl에 덤
 
 캐시에 로컬 수정이 있으면 덮어쓰지 않고 멈춘다. 캐시 폴더를 지우고 다시 받으면 된다.
 
-### 결정 표와 MCP
+### 결정 표·검색·답변 측정
 
 ```bash
-uv run python -m tka.decisions check              # 결정 표 행 수 = 로그 행 수, 링크·보정 검사
-uv run python -m tka.decisions find "LangChain"   # get_decision과 같은 결과를 터미널에서
+uv run python -m tka.decisions check                                   # 결정 표 행 수 = 로그 행 수, 링크·보정 검사
+uv run python -m tka.retrieve eval                                     # 방식별 recall@5 → eval/results/<날짜>-retrieval/
+uv run python -m tka.answer eval --model google/gemini-3.5-flash-lite  # 골든셋 v0 답 → eval/results/<날짜>-bot-<모델>/
 ```
 
-본인 Claude Code에 연결한다 (user 범위, 모든 레포에서 쓴다). 도구는 `get_decision`(결정 로그)과 `search_docs`(문서 검색) 두 개다. 서버는 최신 wiki main을 따라가고 호출을 `data/mcp_calls.jsonl`에 남긴다.
-
-개발 중인 브랜치가 봇을 깨지 않게, 봇은 main만 따르는 작업 폴더(worktree)에서 돌린다. PR을 병합하면 `git -C <live 폴더> pull`로 갱신한다.
-
-```bash
-git -C /path/to/team-knowledge-agent worktree add --track -b live /path/to/team-knowledge-agent-live origin/main
-claude mcp add --scope user tka -- uv run --directory /path/to/team-knowledge-agent-live python -m tka.mcp_server
-```
-
-### 검색
-
-```bash
-uv run python -m tka.retrieve search "탈퇴하면 며칠 안에 복구돼?"   # 기본 방식: RRF 3:1 · Kiwi · 청크 900자
-uv run python -m tka.retrieve eval                                  # 방식별 recall@5 → eval/results/<날짜>-retrieval/
-```
-
-처음 한 번은 e5-small 모델을 내려받고 청크를 임베딩한다(1분 안팎). 임베딩은 `data/index.sqlite`에 캐시한다.
-
-### 답변
-
-```bash
-uv run python -m tka.answer ask "① 검색에 BM25를 쓰나?"          # 기준 커밋 문서로 답하고 근거를 붙인다
-uv run python -m tka.answer eval --model google/gemini-3.5-flash-lite   # 골든셋 v0 → eval/results/<날짜>-bot-<모델>/
-```
-
-`.env`에 `OPENROUTER_API_KEY`가 필요하다. 모델 기본값은 google/gemini-3.5-flash-lite다. 문장마다 근거가 붙고, 인용(`레포/경로:줄@커밋`)은 LLM이 아니라 코드가 만든다.
-
-튜닝용 20문항 결과 (2026-09-30): 봇 90%(18/20), 베이스라인 Claude Code 92%(18.5/20). 봇은 질문당 $0.0009·1.3초, 베이스라인은 $0.127·21.5초. 자세한 비교는 [eval/results/2026-09-30-bot-vs-baseline.md](eval/results/2026-09-30-bot-vs-baseline.md).
+임베딩은 `data/index.sqlite`에 캐시한다. `answer eval`은 호출 로그를 남기지 않는다.
 
 ### 골든셋 검사
 

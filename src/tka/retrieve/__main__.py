@@ -1,7 +1,7 @@
-"""uv run python -m tka.retrieve eval | search "질문" [--k 5]
+"""uv run python -m tka.retrieve eval
 
-eval     방식별 recall@5를 재서 eval/results/<날짜>-retrieval/에 남긴다
-search   기본 방식(DEFAULT)으로 찾아 본다
+방식별 recall@5를 재서 eval/results/<날짜>-retrieval/에 남긴다. 기준 커밋 문서로 잰다.
+기본 방식으로 찾아 보는 사용자 명령은 `tka search`다.
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 
-from tka import core
 from tka.config import Config, load_config
 from tka.decisions.table import DecisionTable, build_table
 from tka.evaluation import dump_yaml
@@ -132,9 +131,7 @@ class Indexes:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m tka.retrieve", description="검색")
-    parser.add_argument("command", choices=("eval", "search"))
-    parser.add_argument("query", nargs="?", default="")
-    parser.add_argument("--k", type=int, default=K)
+    parser.add_argument("command", choices=("eval",))
     parser.add_argument(
         "--out", type=Path, help="eval 결과 폴더. 기본: eval/results/<오늘>-retrieval"
     )
@@ -146,13 +143,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     config = load_config(args.config)
     indexes = Indexes(config, args.root)
     try:
-        if args.command == "search":
-            if not args.query:
-                parser.error("search에는 질문이 필요하다")
-            table = indexes.table() if config.decisions else None
-            text, _ = core.search_docs(indexes.get(DEFAULT), table, args.query, args.k)
-            print(text)  # MCP search_docs와 같은 글
-            return 0
         return _eval(args, config, indexes)
     except FetchError as e:
         print(f"멈춤 — {e}", file=sys.stderr)
