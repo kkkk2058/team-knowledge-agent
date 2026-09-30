@@ -87,17 +87,22 @@ class Answer:
     sources: tuple[Source, ...]  # LLM에 넘긴 근거
     llm: LLMResult
 
-    def render(self) -> str:
+    def cited(self) -> list[Source]:
+        """답 문장이 단 근거. 처음 단 순서대로 (렌더링의 [1], [2] … 순서)."""
+        by_id = {s.id: s for s in self.sources}
         used: list[str] = []
         for s in self.sentences:
             used += [i for i in s.sources if i not in used]
-        number = {source_id: n for n, source_id in enumerate(used, 1)}
+        return [by_id[i] for i in used]
+
+    def render(self) -> str:
+        cited = self.cited()
+        number = {source.id: n for n, source in enumerate(cited, 1)}
         body = [f"{s.text} {''.join(f'[{number[i]}]' for i in s.sources)}" for s in self.sentences]
         if self.unknown:
             head = "모름 — 근거 문서에서 질문에 대한 답을 찾지 못했다."
             body = [head, *(["관련해 문서에 있는 것:", *body] if body else [])]
-        by_id = {s.id: s for s in self.sources}
-        refs = [f"[{number[i]}] {by_id[i].citation} — {by_id[i].title}" for i in used]
+        refs = [f"[{number[s.id]}] {s.citation} — {s.title}" for s in cited]
         return "\n".join(body + (["", "근거:", *refs] if refs else []))
 
 

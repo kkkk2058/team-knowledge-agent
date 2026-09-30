@@ -211,15 +211,6 @@ def test_check_command_passes_on_clean_table(tmp_path, pinned, capsys):
     assert "결정 표 4행 / 로그 4행" in out and "문제 0건" in out
 
 
-def test_find_command_prints_evidence(tmp_path, pinned, capsys):
-    _, commit = pinned
-    config_file = _write_config(tmp_path, commit)
-
-    main(["find", "피드는", "--config", str(config_file), "--root", str(tmp_path)])
-
-    assert "[현행] 2026-09-28 AI — ④ 피드는 GET으로 부른다" in capsys.readouterr().out
-
-
 def _write_config(root: Path, commit: str) -> Path:
     path = root / "c.yaml"
     path.write_text(

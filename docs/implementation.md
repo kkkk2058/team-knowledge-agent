@@ -25,9 +25,11 @@ src/tka/
   index/              키워드 인덱스, 벡터 인덱스
   retrieve/           하이브리드 검색 + RRF
   answer/             프롬프트, 인용 검증
-  core.py             search_docs(), get_decision()  ← 모든 기능의 단일 진입점
-  cli.py              core를 부르는 얇은 껍데기
-  mcp_server.py       core를 부르는 얇은 껍데기 (v1)
+  core.py             search_docs(), get_decision()  ← 근거 찾기·글 만들기
+  service.py          최신 main 따라가기 + 도구 호출 + 호출 로그  ← 입구가 같이 쓴다
+  calllog.py          호출 로그 쓰기·읽기 (data/calls.jsonl)
+  cli.py              tka 명령: ask · search · decision · log  (얇은 껍데기)
+  mcp_server.py       MCP 도구: get_decision · search_docs  (얇은 껍데기)
 eval/
   golden.yaml              골든셋 (검사·확인 시트: src/tka/golden.py)
   drift_cases.yaml         모순 정답셋 후보
@@ -35,7 +37,8 @@ eval/
   results/                 실행마다 소스 커밋·설정 해시와 함께 저장
 ```
 
-- **CLI와 MCP에는 로직을 두지 않는다.** 그래야 v1에서 MCP를 "감싸기만" 할 수 있다(D14).
+- **CLI와 MCP에는 로직을 두지 않는다.** 그래야 v1에서 MCP를 "감싸기만" 할 수 있다(D14). 둘 다 `service.KnowledgeService`를 부르고, 도구 본문은 한 줄이다.
+- 사용자 명령은 `tka` 하나다(8단계). 개발·평가 명령(`ingest`, `decisions check`, `retrieve eval`, `answer eval`, `golden`, `evaluation`, `baseline`)은 기준 커밋으로 도는 `python -m tka.<모듈>`로 따로 둔다. 같은 일을 하는 명령을 두 곳에 두지 않는다.
 - 위 폴더 이름은 예시다. 원칙만 지키면 바꿔도 된다.
 
 ### 테이블
@@ -107,7 +110,7 @@ eval/
 - **이력은 세 경우에만 한 줄** (plan.md D15): ① 옛 내용이 문서·코드에 아직 남아 있을 때 ② 질문이 옛 값을 전제할 때 ③ "왜?"를 물을 때. ①은 LLM에 맡기지 않고 코드로 판단할 수 있다 — 검색된 청크 중 결정 상태가 폐기·대체됨인 것이 있으면 이력 한 줄을 붙이게 한다.
 - 근거가 부족하면 "모름"으로 답하게 하고, 골든셋의 "모름이 정답" 문항으로 확인한다.
 - **완료 기준**: 골든셋 전 문항에서 인용 검증을 통과하지 못한 문장이 답에 남지 않는다.
-- **구현 (`src/tka/answer/`, 2026-09-30)**: `uv run python -m tka.answer ask "질문"`, 채점용은 `eval --model <모델>`.
+- **구현 (`src/tka/answer/`, 2026-09-30)**: `uv run tka ask "질문"`, 채점용은 `python -m tka.answer eval --model <모델>`.
   - 근거는 두 가지다. 결정 `[D…]`: 결정 표 찾기 3개 + 검색에 걸린 결정 행. 문서 `[C…]`: 검색 상위 5개 조각(제목 경로·문서 안내 포함). 검색이 놓친 g19를 결정 표 찾기가 잡는다.
   - LLM은 `{unknown, sentences: [{text, sources}]}`만 JSON 스키마(strict)로 돌려준다. 넘기지 않은 근거 ID는 지우고, 근거가 하나도 안 남은 문장은 뺀다.
   - 이력 ①(옛 서술이 남은 곳)은 코드가 판단한다: 조각에 보정 파일의 `old_text_at` 줄이 있으면 `[주의] N행은 옛 서술이다. 지금 결정: …`을 붙여 넘긴다.
@@ -132,12 +135,14 @@ eval/
 
 - `core.py`의 `get_decision`, `search_docs`를 MCP 도구로 감싼다(`src/tka/mcp_server.py`, MCP SDK 2.x의 `MCPServer`). stdio 방식으로 본인 Claude Code에 user 범위로 등록한다:
   `claude mcp add --scope user tka -- uv run --directory <이 레포> python -m tka.mcp_server`
-- **실제 사용은 최신 main을 따른다.** 평가는 기준 커밋으로 고정하지만 코딩 중에는 신선도가 더 중요하다(plan.md §6). 부를 때 10분이 지났으면 `git ls-remote`로 main을 확인하고, 바뀌었으면 `.cache/live/`에 받아 다시 만든다. 확인에 실패하면 마지막 커밋 기준으로 답하고 그 사실을 알린다. `--pinned`면 기준 커밋 그대로다.
+- **실제 사용은 최신 main을 따른다.** 평가는 기준 커밋으로 고정하지만 코딩 중에는 신선도가 더 중요하다(plan.md §6). 부를 때 10분이 지났으면 `git ls-remote`로 main을 확인하고, 바뀌었으면 `.cache/live/`에 받아 다시 만든다. 확인에 실패하면 마지막 커밋 기준으로 답하고 그 사실을 알린다. `--pinned`면 기준 커밋 그대로다. `tka` 명령도 같다(`src/tka/service.py`).
 - **도구는 답이 아니라 근거를 돌려준다**(D17): 조각 원문, 결정 상태, `레포/경로:줄@커밋` 인용, 인덱스 기준 커밋. 답 문장은 부르는 쪽이 쓴다.
 - **연결 시점은 도구별**(D14): `get_decision`은 결정 표가 로그와 맞으면 바로(5번 PR), `search_docs`는 recall@5가 기준을 넘으면(6번 PR).
 - **`search_docs`** (2026-09-30 연결): 6단계 기본 방식(RRF 3:1 · Kiwi · 청크 900자)으로 찾아 조각 원문·제목 경로·문서 안내·`레포/경로:줄@커밋`을 돌려준다. 조각에 보정 파일의 옛 서술 줄이 있으면 `[주의]`로 지금 결정을 붙인다(조각 전체가 폐기된 건 아니라 빼지 않는다). 색인은 결정 표와 같은 커밋 사본으로 처음 검색할 때 만들고, 새 main이면 다시 만든다. 임베딩은 캐시돼 바뀐 청크만 계산한다. 처음 검색 7.8초(모델을 먼저 로컬에서 불러온다), 이후 즉시.
 - 도구 함수는 MCP 서버의 다른 스레드에서 불린다. sqlite3 연결은 만든 스레드에서만 쓸 수 있어 임베딩 캐시는 쓸 때마다 짧게 연다(처음 연결 때 실제로 깨졌다).
-- 호출 로그를 `data/mcp_calls.jsonl`에 남긴다(시각, 도구, 인자, 기준 커밋, 돌려준 근거 위치, 걸린 시간). 로그를 못 남겨도 답은 돌려준다. 틀린 답은 골든셋에 추가한다.
+- **호출 로그** (8단계): MCP 도구와 `tka` 명령을 부를 때마다 `data/calls.jsonl`에 한 줄 남긴다(시각, 입구 `mcp`·`cli`, 도구, 인자, 기준 커밋, 돌려준 근거 위치, 걸린 시간. `ask`는 모름 여부·답·비용도). 로그를 못 남겨도 답은 돌려준다. 평가 실행은 남기지 않는다. `tka log`로 보고, `--empty`면 결과 없음·모름만 본다(문서 빈 곳 후보). 틀린 답은 골든셋에 추가한다.
+- MCP는 live 작업 폴더에서 돌므로 로그도 거기 쌓인다. `tka`도 같은 폴더에서 부르면(README의 alias) 로그가 한 파일에 모인다.
+- 2026-09-30 확인: MCP 서버는 연결돼 있었지만 호출 로그가 한 줄도 없었다(연결 뒤 실제로 불린 적이 없다). plan.md §1-1대로 `~/.claude/CLAUDE.md`에 언제 부를지 한 줄 적는다.
 - 도구 설명(description)이 호출 여부를 좌우한다. "팀 결정·명세·정책을 확인해야 할 때"처럼 **언제 불러야 하는지**를 쓴다.
 
 ## 4. 구현 순서 — 한 줄이 PR 하나

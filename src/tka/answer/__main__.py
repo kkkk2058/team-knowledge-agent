@@ -1,8 +1,8 @@
-"""uv run python -m tka.answer ask "질문" [--model M] | eval --model M [--ids g01,g02]
+"""uv run python -m tka.answer eval --model M [--ids g01,g02]
 
-ask    기준 커밋 캐시로 질문에 답한다 (근거와 인용 포함)
-eval   골든셋 v0 문항에 답해 eval/results/<날짜>-bot-<모델>/answers.yaml에 남긴다.
-       베이스라인과 같은 형식이라 python -m tka.evaluation summary로 채점·요약한다.
+골든셋 v0 문항에 답해 eval/results/<날짜>-bot-<모델>/answers.yaml에 남긴다. 기준 커밋 문서로
+답하고 호출 로그는 남기지 않는다. 베이스라인과 같은 형식이라 python -m tka.evaluation summary로
+채점·요약한다. 질문 하나에 답하는 사용자 명령은 `tka ask`다.
 """
 
 from __future__ import annotations
@@ -15,26 +15,24 @@ from collections.abc import Sequence
 from datetime import date, datetime
 from pathlib import Path
 
-from tka.answer.llm import LLMError, OpenRouter, load_api_key
+from tka.answer.llm import DEFAULT_MODEL, LLMError, OpenRouter, load_api_key
 from tka.answer.pipeline import SYSTEM_PROMPT, answer_question
 from tka.config import load_config
-from tka.decisions.table import build_table
+from tka.decisions.table import DecisionError
 from tka.evaluation import PROMPT_TEMPLATE, dump_yaml
 from tka.golden import load_golden
 from tka.index.vector import Embedder
 from tka.ingest.fetch import FetchError
-from tka.retrieve.search import DEFAULT_SETTINGS, build_index
-
-DEFAULT_MODEL = "google/gemini-3.5-flash-lite"
+from tka.retrieve.search import DEFAULT_SETTINGS
+from tka.service import KnowledgeService
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m tka.answer", description="답변")
-    parser.add_argument("command", choices=("ask", "eval"))
-    parser.add_argument("question", nargs="?", default="")
+    parser = argparse.ArgumentParser(prog="python -m tka.answer", description="골든셋 답변")
+    parser.add_argument("command", choices=("eval",))
     parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument("--ids", help="eval: 쉼표로 구분한 문항 id")
-    parser.add_argument("--out", type=Path, help="eval: 결과 폴더")
+    parser.add_argument("--ids", help="쉼표로 구분한 문항 id")
+    parser.add_argument("--out", type=Path, help="결과 폴더")
     parser.add_argument("--config", type=Path, default=Path("config/ktb13.yaml"))
     parser.add_argument("--golden", type=Path, default=Path("eval/golden.yaml"))
     parser.add_argument("--root", type=Path, default=Path("."))
@@ -43,33 +41,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     config = load_config(args.config)
     try:
         llm = OpenRouter(args.model, load_api_key(args.root / ".env"))
-        table = build_table(config, args.root)
-        source = next(s for s in config.sources if s.name == config.decisions.source)
-        index = build_index(
-            config,
-            args.root,
-            source,
-            Embedder(args.root / config.index_path),
-            DEFAULT_SETTINGS,
-            table,
+        service = KnowledgeService(
+            config, args.root, live=False, embedder=Embedder(args.root / config.index_path)
         )
-    except (LLMError, FetchError) as e:
+        index, table, _ = service.search_index()
+    except (LLMError, FetchError, DecisionError) as e:
         print(f"멈춤 — {e}", file=sys.stderr)
         return 1
-
-    if args.command == "ask":
-        if not args.question:
-            parser.error("ask에는 질문이 필요하다")
-        started = time.monotonic()
-        try:
-            answer = answer_question(index, table, args.question, llm, aliases=config.aliases)
-        except LLMError as e:
-            print(f"멈춤 — {e}", file=sys.stderr)
-            return 1
-        print(answer.render())
-        cost = f"${answer.llm.cost_usd:.4f}" if answer.llm.cost_usd is not None else "비용 모름"
-        print(f"\n({answer.llm.model}, {time.monotonic() - started:.1f}초, {cost})")
-        return 0
     return _eval(args, config, index, table, llm)
 
 

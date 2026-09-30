@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Any
 
 BASE_URL = "https://openrouter.ai/api/v1"
+# 7단계 비교로 고른 모델 (eval/results/2026-09-30-bot-vs-baseline.md)
+DEFAULT_MODEL = "google/gemini-3.5-flash-lite"
 MAX_RETRIES = 2
 TIMEOUT_SECONDS = 90
 
