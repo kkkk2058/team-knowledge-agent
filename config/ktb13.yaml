@@ -26,3 +26,21 @@ sources:
       - .agents/skills/ktb4-docs/references/decisions.md
     exclude: []
     extensions: [.md]
+
+# 결정 로그. 번복 관계는 로그에 칸이 없어서 보정 파일에 적는다 (implementation.md ③).
+decisions:
+  source: wiki
+  log: docs/dec/000-decision-log.md
+  corrections: config/ktb13-supersedes.yaml
+
+# 같은 것을 가리키는 말 묶음. 결정 찾기에서 서로 바꿔 찾는다.
+# ①~⑧은 AI 엔드포인트 번호다 (docs/ai/1-model-api/spec.md §1).
+aliases:
+  - ["①", "search", "검색"]
+  - ["②", "embeddings", "임베딩"]
+  - ["③", "recommendations/chat", "챗봇", "대화 추천"]
+  - ["④", "recommendations/feed", "feed", "피드"]
+  - ["⑤", "extractions", "취향 추출", "취향 기억"]
+  - ["⑥", "preferences/profile", "취향 프로필", "취향 벡터"]
+  - ["⑦", "agent/act", "에이전트"]
+  - ["CLD", "클라우드", "cloud", "배포"]

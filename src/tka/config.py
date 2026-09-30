@@ -50,12 +50,22 @@ def matches_rule(path: str, rule: str) -> bool:
 
 
 @dataclass(frozen=True)
+class DecisionsConfig:
+    source: str  # 결정 로그가 있는 소스 이름
+    log: str  # 그 소스 레포 루트 기준 경로
+    corrections: Path | None  # 번복 관계 보정 파일, 이 레포 루트 기준
+
+
+@dataclass(frozen=True)
 class Config:
     team: str
     decision_log_year: int
     cache_dir: Path  # 레포 루트 기준
     index_path: Path  # 레포 루트 기준
     sources: tuple[Source, ...]
+    decisions: DecisionsConfig | None = None
+    # 같은 것을 가리키는 말 묶음. 예: ("④", "feed", "피드"). 결정 찾기에서 서로 바꿔 찾는다.
+    aliases: tuple[tuple[str, ...], ...] = ()
 
     def source_for_repo(self, repo_name: str) -> Source | None:
         """레포 이름(owner 제외)으로 소스를 찾는다. 설정에 없으면 None."""
@@ -89,7 +99,42 @@ def load_config(path: Path) -> Config:
         cache_dir=Path(_get(paths, "cache_dir", str, "paths")),
         index_path=Path(_get(paths, "index_path", str, "paths")),
         sources=sources,
+        decisions=_parse_decisions(raw.get("decisions"), names),
+        aliases=_parse_aliases(raw.get("aliases")),
     )
+
+
+def _parse_decisions(raw: Any, source_names: list[str]) -> DecisionsConfig | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ConfigError("decisions: 매핑이 아니다")
+    source = _get(raw, "source", str, "decisions")
+    if source not in source_names:
+        raise ConfigError(f"decisions.source: sources에 없는 이름이다: {source!r}")
+    corrections = raw.get("corrections")
+    if corrections is not None and not isinstance(corrections, str):
+        raise ConfigError(f"decisions.corrections: 경로 문자열이어야 한다: {corrections!r}")
+    return DecisionsConfig(
+        source=source,
+        log=_get(raw, "log", str, "decisions"),
+        corrections=Path(corrections) if corrections else None,
+    )
+
+
+def _parse_aliases(raw: Any) -> tuple[tuple[str, ...], ...]:
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise ConfigError("aliases: 목록이어야 한다")
+    groups = []
+    for i, group in enumerate(raw):
+        if not isinstance(group, list) or len(group) < 2:
+            raise ConfigError(f"aliases[{i}]: 말 두 개 이상의 목록이어야 한다")
+        if not all(isinstance(term, str) and term for term in group):
+            raise ConfigError(f"aliases[{i}]: 빈 값이 아닌 문자열만 쓴다")
+        groups.append(tuple(group))
+    return tuple(groups)
 
 
 def _parse_source(raw: Any, where: str) -> Source:

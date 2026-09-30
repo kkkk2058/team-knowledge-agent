@@ -112,7 +112,7 @@
 
 | 주제 | 링크 | 메모 |
 |---|---|---|
-| MCP Python SDK | https://github.com/modelcontextprotocol/python-sdk · https://py.sdk.modelcontextprotocol.io/ | FastMCP가 SDK에 포함돼 있다 |
+| MCP Python SDK | https://github.com/modelcontextprotocol/python-sdk · https://py.sdk.modelcontextprotocol.io/ | 2.x에서 `FastMCP`가 `MCPServer`(`mcp.server.mcpserver`)로 이름이 바뀌었다 |
 | Claude Code에 MCP 연결 | https://code.claude.com/docs/en/mcp-quickstart | 로컬: `claude mcp add --transport stdio <이름> -- <명령>`, 확인: `claude mcp list` |
 | SQLite FTS5 (트라이그램 포함) | https://www.sqlite.org/fts5.html | 트라이그램은 3글자 미만 검색어를 매칭하지 않는다 |
 | 짧은 검색어 처리 사례 | https://zenn.dev/kanseilink/articles/kanseilink-fts5-trigram-cjk-20260507?locale=en | CJK: 3글자 이상은 트라이그램, 2글자 이하는 LIKE로 따로 찾아 합침 |
