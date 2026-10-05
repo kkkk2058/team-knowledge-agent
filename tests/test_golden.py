@@ -281,3 +281,20 @@ def test_read_lines_splits_only_on_newline(tmp_path):
     path.write_bytes("첫 줄 같은 줄\r\n둘째 줄\x0c같은 줄\n".encode())
 
     assert read_lines(path) == ["첫 줄 같은 줄", "둘째 줄\x0c같은 줄"]
+
+
+def test_bigset_items_have_b_ids_and_split(tmp_path):
+    golden = load_golden(
+        write_yaml(
+            tmp_path / "g.yaml",
+            make_golden([make_item(id="b001", type="현행 결정", status="자동 생성", split="test")]),
+        )
+    )
+
+    assert (golden.items[0].id, golden.items[0].split) == ("b001", "test")
+    assert golden.items[0].type == "현행 결정"
+
+
+def test_bad_split_rejected(tmp_path):
+    with pytest.raises(GoldenError, match="split"):
+        load_golden(write_yaml(tmp_path / "g.yaml", make_golden([make_item(split="train")])))

@@ -238,3 +238,62 @@ def test_dump_yaml_writes_multiline_as_block():
 
     assert "answer: |" in text
     assert yaml.safe_load(text) == {"answer": "첫 줄\n둘째 줄"}
+
+
+def test_item_problem_is_left_out_of_accuracy(tmp_path, source):
+    config, commit = source
+    golden = _golden(tmp_path, [make_item(id="g01"), make_item(id="g02")], commit)
+    run_dir = _run_dir(
+        tmp_path,
+        [{"id": "g01", "answer": "답"}, {"id": "g02", "answer": "답"}],
+        [
+            {"id": "g01", "verdict": "정답"},
+            {"id": "g02", "verdict": "오답", "failure": "근거 못 찾음", "item_problem": True},
+        ],
+    )
+
+    summary = render_summary(
+        load_run(run_dir),
+        evaluate(golden, load_run(run_dir), load_scores(run_dir), config, tmp_path),
+    )
+
+    assert "| 정답률 (정답 1, 부분 0.5) | 100% (1/1) |" in summary
+    assert "| 문항 오류로 뺀 문항 | 1 |" in summary
+    assert "| g02 | 명세 값 | 미채점 |" in summary
+
+
+def test_item_problem_must_be_bool(tmp_path):
+    run_dir = _run_dir(tmp_path, [], [{"id": "g01", "verdict": "정답", "item_problem": "yes"}])
+
+    with pytest.raises(ResultError, match="item_problem은 true 또는 false다"):
+        load_scores(run_dir)
+
+
+def test_evaluate_filters_by_split_and_ids(tmp_path, source):
+    config, commit = source
+    golden = _golden(
+        tmp_path,
+        [
+            make_item(id="b001", split="dev"),
+            make_item(id="b002", split="test"),
+            make_item(id="b003", split="test"),
+        ],
+        commit,
+    )
+    run = load_run(
+        _run_dir(tmp_path, [{"id": i, "answer": "답"} for i in ("b001", "b002", "b003")])
+    )
+
+    test_only = evaluate(golden, run, {}, config, tmp_path, split="test")
+    picked = evaluate(golden, run, {}, config, tmp_path, split="test", ids={"b003"})
+
+    assert [r.item.id for r in test_only] == ["b002", "b003"]
+    assert [r.item.id for r in picked] == ["b003"]
+
+
+def test_other_scores_file_can_be_read(tmp_path):
+    run_dir = _run_dir(tmp_path, [])
+    write_yaml(run_dir / "scores-llm.yaml", {"items": [{"id": "g01", "verdict": "부분"}]})
+
+    assert load_scores(run_dir) == {}
+    assert load_scores(run_dir, "scores-llm.yaml")["g01"].verdict == "부분"

@@ -7,6 +7,8 @@
 
     uv run python -m tka.evaluation template eval/results/<run> --system deepwiki
     uv run python -m tka.evaluation summary eval/results/<run>
+    uv run python -m tka.evaluation summary <run> --golden eval/bigset.yaml --split test
+    uv run python -m tka.evaluation summary <run> --ids-from <다른 run> --out summary-50.md
 
 모든 시스템(베이스라인, 우리 봇)에 같은 질문 형식(PROMPT_TEMPLATE)을 쓴다.
 """
@@ -178,6 +180,7 @@ class Score:
     verdict: str  # 정답 · 부분 · 오답
     failure: str | None  # 틀린 답 유형 (FAILURES)
     reason: str | None
+    item_problem: bool = False  # 문항 자체가 틀렸다 (tka.judge). 정답률에서 뺀다
 
 
 @dataclass(frozen=True)
@@ -207,9 +210,9 @@ def load_run(run_dir: Path) -> Run:
     )
 
 
-def load_scores(run_dir: Path) -> dict[str, Score]:
-    """id → 판정. scores.yaml이 없으면 빈 dict (아직 채점 전)."""
-    path = run_dir / "scores.yaml"
+def load_scores(run_dir: Path, name: str = "scores.yaml") -> dict[str, Score]:
+    """id → 판정. 파일이 없으면 빈 dict (아직 채점 전)."""
+    path = run_dir / name
     if not path.exists():
         return {}
     raw = _load_yaml(path)
@@ -225,7 +228,10 @@ def load_scores(run_dir: Path) -> dict[str, Score]:
             raise ResultError(f"{where}: failure는 {'·'.join(FAILURES)} 중 하나다")
         if verdict == "정답" and failure is not None:
             raise ResultError(f"{where}: 정답에는 failure를 적지 않는다")
-        scores[s["id"]] = Score(verdict, failure, s.get("reason"))
+        item_problem = s.get("item_problem", False)
+        if not isinstance(item_problem, bool):
+            raise ResultError(f"{where}: item_problem은 true 또는 false다")
+        scores[s["id"]] = Score(verdict, failure, s.get("reason"), item_problem)
     return scores
 
 
@@ -268,7 +274,8 @@ class ItemResult:
 
     @property
     def verdict(self) -> str | None:
-        return self.score.verdict if self.score else None
+        """정답률에 넣는 판정. 채점 전이거나 문항 오류로 뺀 문항은 None."""
+        return self.score.verdict if self.score and not self.score.item_problem else None
 
     @property
     def cited_evidence(self) -> bool:
@@ -286,10 +293,16 @@ def evaluate(
     config: Config,
     root: Path,
     version: str = "v0",
+    *,
+    split: str | None = None,
+    ids: set[str] | None = None,
 ) -> list[ItemResult]:
+    """version 문항을 채점한다. split·ids가 있으면 그 문항만."""
     sources = load_sources(golden, config, root)
     results = []
     for item in golden.for_version(version):
+        if (split and item.split != split) or (ids is not None and item.id not in ids):
+            continue
         answer = run.answers.get(item.id)
         checks = (
             check_citations(extract_citations(answer.answer), item, sources)
@@ -350,6 +363,7 @@ def render_summary(run: Run, results: list[ItemResult]) -> str:
         "|---|---|",
         f"| 정답률 (정답 1, 부분 0.5) | {accuracy} |",
         f"| 채점한 문항 | {len(scored)}/{len(results)} |",
+        f"| 문항 오류로 뺀 문항 | {sum(1 for r in results if r.score and r.score.item_problem)} |",
         f"| 인용 정확도 (인용한 파일·줄이 실제로 있음) | {citation_accuracy} |",
         f"| 근거 적중 (골든셋 근거 줄을 인용한 문항) | {evidence_hits} |",
         f"| 답이 없는 문항 (오류 포함) | {sum(1 for r in results if not r.has_answer)} |",
@@ -419,6 +433,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--golden", type=Path, default=Path("eval/golden.yaml"))
     parser.add_argument("--config", type=Path, default=Path("config/ktb13.yaml"))
     parser.add_argument("--root", type=Path, default=Path("."))
+    parser.add_argument("--scores", default="scores.yaml", help="summary: 채점 파일 이름")
+    parser.add_argument("--split", choices=("dev", "test"), help="summary: 이 나눔의 문항만")
+    parser.add_argument(
+        "--ids-from", type=Path, help="summary: 이 실행이 답한 문항만 (같은 문항 비교)"
+    )
+    parser.add_argument("--out", default="summary.md", help="summary: 실행 폴더 안 파일 이름")
     args = parser.parse_args(argv)
 
     golden = load_golden(args.golden)
@@ -429,9 +449,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     run = load_run(args.run_dir)
-    results = evaluate(golden, run, load_scores(args.run_dir), load_config(args.config), args.root)
+    ids = set(load_run(args.ids_from).answers) if args.ids_from else None
+    results = evaluate(
+        golden,
+        run,
+        load_scores(args.run_dir, args.scores),
+        load_config(args.config),
+        args.root,
+        split=args.split,
+        ids=ids,
+    )
     summary = render_summary(run, results)
-    (args.run_dir / "summary.md").write_text(summary, encoding="utf-8")
+    (args.run_dir / args.out).write_text(summary, encoding="utf-8")
     print(summary)
     return 0
 
