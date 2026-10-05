@@ -1,0 +1,66 @@
+scored_by: LLM 채점 (openai/gpt-6.1-sol, 2026-09-30, tka.judge)
+rule: tka.judge SYSTEM_PROMPT (사람 채점과 같은 기준). item_problem 문항은 뺀다
+items:
+- id: g01
+  verdict: 정답
+  reason: 도서 임베딩 모델을 multilingual-e5-small, 벡터 차원을 384차원으로 정확히 답했으며 근거 원문과 일치한다.
+- id: g02
+  verdict: 정답
+  reason: book_passage 원문조각 RAG를 쓰지 않으며 reason_long은 v_books.description만 근거로 생성한다고 정확히 답했다. 기준 정답과 근거 원문의 현재 결정이 일치한다.
+- id: g03
+  verdict: 정답
+  reason: ③ 대화 추천·⑤ 취향 추출은 LangChain, ⑦ 쇼핑 에이전트는 LangGraph를 도입한다는 현재 결정을 정확히 답했다. 코드 전환이 후속 작업이라는 설명도 근거 원문과 어긋나지 않는다.
+- id: g04
+  verdict: 정답
+  reason: ① 일반 검색에서는 BM25를 쓰지 않고 키워드 검색에 pg_trgm만 쓴다는 핵심을 정확히 답했다. 표지 사진 인식의 BM25 사용은 별도 용도로 명확히 구분하여 ① 검색과 혼동하지 않았다.
+- id: g05
+  verdict: 정답
+  reason: 현재 홈 추천 피드(④)는 POST가 아닌 GET /recommendations/feed로 호출한다고 정확히 답했다. 변경 이력에 대한 덧붙임은 채점에 영향을 주지 않는다.
+- id: g06
+  verdict: 부분
+  failure: 근거 못 찾음
+  reason: 단방향 복제와 쓰기 주체 분리를 통한 커머스 데이터 보호, BE 장애 시 AI가 복제본으로 계속 응답하는 이유는 맞게 설명했다. 다만 AI 전용 PostgreSQL+pgvector를 두는 핵심 이유인 ‘필터와 벡터 정렬을 한 SQL로 처리’는 설명하지 않고 벡터 검색 기능 필요성으로만 제시했다.
+- id: g07
+  verdict: 정답
+  reason: 도구가 7개로 고정돼 있고 연결 상대가 자체 BE 팀 하나여서 MCP의 장점이 없다는 핵심 이유를 정확히 설명했다. MCP 형식의 도구 목록과 내부 REST를 사용해 향후 통로만 교체할 수 있게 했다는 대안도 기준 정답과 일치한다.
+- id: g08
+  verdict: 정답
+  reason: 질문에서 묻는 컬럼 다섯 개(book_id, sales, rating_avg, rating_count, as_of)를 모두 정확히 제시했다. 타입과 활용 방식에 관한 부가 설명은 컬럼 집합이라는 핵심 답과 어긋나지 않는다.
+- id: g09
+  verdict: 정답
+  reason: AI Postgres 장애 시 검색·챗봇·피드가 전면 500을 반환하고 구매 경로는 정상이라는 핵심을 모두 정확히 말했다. BE MySQL 장애는 복제만 멈춘다는 점도 구분했다.
+- id: g10
+  verdict: 부분
+  failure: 근거 못 찾음
+  reason: PR에서 Lint, Test, Build를 수행한다는 핵심은 언급했지만, Build를 Frontend/Backend에만 한정하고 AI Server는 제외하여 근거 원문의 설명과 어긋납니다.
+- id: g11
+  verdict: 정답
+  reason: 질문이 직접 묻는 수정 위치를 레포의 `docs/`로 정확히 답했다. 위키 자동 반영에 대한 부가 설명은 제시된 근거와 다르지만, 수정 위치라는 핵심 답변에는 영향을 주지 않는다.
+- id: g12
+  verdict: 정답
+  reason: 문서에서 FE 전역 상태 관리 라이브러리를 확인할 수 없다고 답했고, 특정 라이브러리를 지어내지 않아 기준 정답과 일치합니다.
+- id: g14
+  verdict: 정답
+  reason: 배송비가 0원이며, 탈퇴 신청 후 7일 이내에 다시 로그인하면 계정이 복구된다는 두 핵심을 모두 정확히 답했다.
+- id: g15
+  verdict: 정답
+  reason: 질문이 묻는 BE 시각 컬럼 타입 DATETIME(6)과 AI 복제 시 해석 시간대 Asia/Seoul을 모두 정확히 답했다. BE의 한국 시간 저장 및 AI의 timestamptz 적재도 근거와 일치한다.
+- id: g16
+  verdict: 오답
+  failure: 근거 찾고 틀림
+  reason: FS-2 API 명세의 {result, data, error}만 답하고, 결정 로그의 {message, data}는 언급하지 않았다. 두 문서의 형식을 모두 제시해야 하며 한쪽만 답하면 오답이라는 채점 메모에 따른다.
+- id: g17
+  verdict: 정답
+  reason: 상품 목록 API 경로인 GET /api/v1/items와 cursor 페이지 방식을 모두 정확히 답했다.
+- id: g18
+  verdict: 정답
+  reason: 애플리케이션 컨테이너만 교체하는 Recreate 전략과 계획된 API 중단 최대 5분 이내 목표를 정확히 답했다. 점심·저녁 시간을 피한 배포와 주문·거래 데이터 유실 금지 조건도 기준 정답과 일치한다.
+- id: g19
+  verdict: 정답
+  reason: 취향 벡터가 없어도 구매·리뷰 이력이 있으면 ③·④가 이력으로 개인화한다는 핵심을 맞게 답했다. 이력과 온보딩이 모두 없을 때의 cold_start 조건은 질문이 직접 묻지 않은 부가 설명이므로 생략해도 정답이다.
+- id: g20
+  verdict: 정답
+  reason: PG사 업체명이 문서에 명시되어 있지 않아 알 수 없다고 답했으며, 특정 업체를 지어내지 않았습니다. 결제를 테스트로 운영한다는 설명은 질문의 핵심이 아니므로 생략해도 정답입니다.
+- id: g21
+  verdict: 정답
+  reason: V2 AI 작업 큐가 Amazon SQS Standard + DLQ로 확정되었음을 명확히 답했고, 해당 결정이 backup/ 원본에만 있다는 범위도 밝혔다. ⑤ 취향 추출의 큐 전환 여부는 미정이라는 부가 설명도 근거와 일치한다.

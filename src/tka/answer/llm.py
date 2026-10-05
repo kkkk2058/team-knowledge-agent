@@ -19,6 +19,7 @@ BASE_URL = "https://openrouter.ai/api/v1"
 # 7단계 비교로 고른 모델 (eval/results/2026-09-30-bot-vs-baseline.md)
 DEFAULT_MODEL = "google/gemini-3.5-flash-lite"
 MAX_RETRIES = 2
+EMPTY_RETRIES = 1  # 200인데 내용이 빈 답(제공자 쪽 일시 문제)은 한 번 더 부른다
 TIMEOUT_SECONDS = 90
 
 
@@ -63,40 +64,28 @@ def load_api_key(env_file: Path) -> str:
 
 
 class OpenRouter:
-    def __init__(self, model: str, api_key: str) -> None:
+    def __init__(self, model: str, api_key: str, *, temperature: float | None = 0) -> None:
+        """temperature=None이면 보내지 않는다. OpenAI 모델은 temperature를 받지 않아서, 보내면
+        require_parameters가 경로를 모두 걸러 404가 난다(OpenRouter 엔드포인트 정보, 2026-09-30)."""
         from openai import OpenAI  # 답변을 만들 때만 불러온다
 
         self.model = model
+        self.temperature = temperature
         self._client = OpenAI(
             api_key=api_key, base_url=BASE_URL, max_retries=MAX_RETRIES, timeout=TIMEOUT_SECONDS
         )
 
     def complete_json(self, system: str, user: str, schema: dict[str, Any], name: str) -> LLMResult:
-        from openai import OpenAIError
-
         started = time.monotonic()
-        try:
-            response = self._client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-                temperature=0,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": {"name": name, "strict": True, "schema": schema},
-                },
-                extra_body={"provider": {"require_parameters": True}, "usage": {"include": True}},
-            )
-        except OpenAIError as e:
-            status = getattr(e, "status_code", None)
-            raise LLMError(
-                f"{self.model} 호출 실패: {type(e).__name__}: {e}", fatal=status in FATAL_STATUS
-            ) from e
-
-        choice = response.choices[0] if response.choices else None
-        content = choice.message.content if choice else None
-        if not content:
+        for _ in range(EMPTY_RETRIES + 1):
+            response = self._create(system, user, schema, name)
+            choice = response.choices[0] if response.choices else None
+            content = choice.message.content if choice else None
+            if content:
+                break
+        else:
             reason = choice.finish_reason if choice else "choices 없음"
-            raise LLMError(f"{self.model}: 빈 답 ({reason})")
+            raise LLMError(f"{self.model}: 빈 답 ({reason}, {EMPTY_RETRIES + 1}번 불렀다)")
         try:
             data = json.loads(content)
         except json.JSONDecodeError as e:
@@ -114,3 +103,30 @@ class OpenRouter:
             output_tokens=usage.completion_tokens if usage else None,
             duration_ms=round((time.monotonic() - started) * 1000),
         )
+
+    def _create(self, system: str, user: str, schema: dict[str, Any], name: str):
+        from openai import OpenAIError
+
+        options = {} if self.temperature is None else {"temperature": self.temperature}
+        try:
+            return self._client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                **options,
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {"name": name, "strict": True, "schema": schema},
+                },
+                extra_body={"provider": {"require_parameters": True}, "usage": {"include": True}},
+            )
+        except OpenAIError as e:
+            status = getattr(e, "status_code", None)
+            hint = (
+                " (temperature를 받지 않는 모델이면 temperature=None으로 부른다)"
+                if status == 404 and options
+                else ""
+            )
+            raise LLMError(
+                f"{self.model} 호출 실패: {type(e).__name__}: {e}{hint}",
+                fatal=status in FATAL_STATUS,
+            ) from e

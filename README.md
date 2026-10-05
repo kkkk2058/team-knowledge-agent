@@ -108,6 +108,26 @@ uv run python -m tka.evaluation template eval/results/<날짜>-deepwiki --system
 uv run python -m tka.evaluation summary eval/results/<run>
 ```
 
+### 자동 생성 검증셋과 LLM 채점
+
+골든셋 20문항은 튜닝용이라, 넓이는 LLM이 만든 약 200문항(`eval/bigset.yaml`)으로 잰다. 만드는 모델과 채점 모델은 봇·베이스라인과 다른 계열이다(plan.md D18). dev는 틀린 이유를 보고 고쳐도 되고, test는 합계만 본다.
+
+```bash
+uv run python -m tka.bigset generate        # eval/bigset.yaml (이미 있으면 멈춘다)
+uv run python -m tka.bigset review          # 레포 주인이 확인할 무작위 20문항 → data/bigset_review.md
+uv run python -m tka.golden check --golden eval/bigset.yaml
+
+uv run python -m tka.answer eval --golden eval/bigset.yaml --out eval/results/<날짜>-bigset-bot
+uv run python -m tka.baseline --repo-dir /tmp/tka-baseline/KTB4-13th-wiki --golden eval/bigset.yaml \
+  --ids <bigset.yaml의 meta.baseline_ids> --out eval/results/<날짜>-bigset-claude-code
+
+uv run python -m tka.judge score <run> --golden eval/bigset.yaml     # → <run>/scores.yaml
+uv run python -m tka.judge agree <run> --llm scores-llm.yaml          # 사람 채점이 있는 실행에서 일치율
+uv run python -m tka.evaluation summary <run> --golden eval/bigset.yaml --split test
+uv run python -m tka.evaluation summary <봇 run> --golden eval/bigset.yaml \
+  --ids-from <베이스라인 run> --out summary-50.md                    # 같은 50문항으로 비교
+```
+
 ## 문서
 
 작업 규칙과 문서 안내는 [CLAUDE.md](CLAUDE.md)에 있다.

@@ -6,6 +6,8 @@
   안에 두면 이 프로젝트의 규칙과 골든셋 위치가 새 세션에 섞인다.
 - 도구는 Read·Grep·Glob만 쓴다. MCP는 끈다(화면 기록 같은 도구가 정답을 볼 수 있다).
   웹도 끈다(기준 커밋이 아닌 최신 문서를 보게 된다).
+- 사용자 설정(~/.claude)은 읽지 않는다(--setting-sources project,local). 사용자 CLAUDE.md에
+  "tka 도구로 확인한다" 같은 이 프로젝트 지시가 있으면 새 세션에 섞인다(2026-10-06 확인).
 - 답은 문항마다 바로 저장한다. 다시 돌리면 답이 있는 문항은 건너뛴다.
 """
 
@@ -27,6 +29,7 @@ from tka.golden import GoldenSet, load_golden
 
 ALLOWED_TOOLS = "Read,Grep,Glob"
 DISALLOWED_TOOLS = "Bash,WebFetch,WebSearch,Task,Edit,Write,NotebookEdit"
+SETTING_SOURCES = "project,local"  # user(~/.claude) 설정·CLAUDE.md를 빼고 clone 안의 것만
 TIMEOUT_SECONDS = 900
 
 
@@ -46,6 +49,8 @@ def claude_command(prompt: str, claude_bin: str, model: str | None) -> list[str]
         "--disallowedTools",
         DISALLOWED_TOOLS,
         "--strict-mcp-config",
+        "--setting-sources",
+        SETTING_SOURCES,
         "--no-session-persistence",
     ]
     return command + (["--model", model] if model else [])
@@ -123,6 +128,7 @@ def _load_or_start(path: Path, golden: GoldenSet, repo: str, run_id: str) -> dic
             "session": "새 세션 (claude -p), 이 프로젝트 맥락 없음",
             "allowed_tools": ALLOWED_TOOLS,
             "mcp": "끔 (--strict-mcp-config)",
+            "setting_sources": SETTING_SOURCES,
             "prompt_template": PROMPT_TEMPLATE,
             "started_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         },

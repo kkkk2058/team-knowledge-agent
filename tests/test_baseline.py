@@ -115,6 +115,7 @@ def test_asks_every_item_in_a_fresh_restricted_session(setup):
     assert argv[argv.index("--allowedTools") + 1] == "Read,Grep,Glob"
     assert "Bash" in argv[argv.index("--disallowedTools") + 1]
     assert "--strict-mcp-config" in argv and "--no-session-persistence" in argv
+    assert argv[argv.index("--setting-sources") + 1] == "project,local"  # 사용자 CLAUDE.md 빼기
     assert argv[argv.index("-p") + 1].startswith("첫번째?\n\n이 레포의 문서를 근거로")
 
 
