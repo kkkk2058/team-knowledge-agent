@@ -145,6 +145,50 @@ def decision_config(root: Path, commit: str, *, corrections: str | None = SUPERS
     )
 
 
+# ── API 대조표용 작은 저장소 세 개: 명세·서버(FastAPI)·호출(fetch) ─────
+
+CONTRACT_FILES = {
+    "c-wiki": {"docs/api.md": "| ① | `POST /search` | 검색한다 |\n| ④ | `GET /feed` | 피드 |\n"},
+    "srv": {"app/main.py": 'app = FastAPI()\n@app.post("/search")\n'},
+    "web": {
+        "src/api.ts": 'fetchWithAuth("/search", { method: "POST" });\nfetchWithAuth("/gone");\n'
+    },
+}
+
+
+def make_contract_repos(base: Path) -> dict[str, str]:
+    """base/<이름>에 저장소를 만들고 이름 → 커밋 해시를 돌려준다."""
+    commits = {}
+    for name, files in CONTRACT_FILES.items():
+        repo = base / name
+        for path, text in files.items():
+            (repo / path).parent.mkdir(parents=True, exist_ok=True)
+            (repo / path).write_text(text, encoding="utf-8")
+        git(repo, "init", "-q", "-b", "main")
+        git(repo, "add", ".")
+        git(repo, "commit", "-q", "-m", "init")
+        commits[name] = git(repo, "rev-parse", "HEAD")
+    return commits
+
+
+def contracts_config(commits: dict[str, str]):
+    """명세 AI 하나, 서버 srv(FastAPI), 호출 web→AI(fetch)."""
+    from tka.config import CallerContract, ContractsConfig, ServiceContract
+
+    def source(name: str, include: str, ext: str) -> Source:
+        return Source(name, f"org/{name}", commits[name][:7], (include,), (), (ext,))
+
+    return ContractsConfig(
+        sources=(
+            source("c-wiki", "docs/", ".md"),
+            source("srv", "app/", ".py"),
+            source("web", "src/", ".ts"),
+        ),
+        services=(ServiceContract("AI", "c-wiki", "docs/api.md", "srv", "fastapi"),),
+        callers=(CallerContract("FE→AI", "AI", "web", "fetch", (), "/", ("fetchWithAuth",)),),
+    )
+
+
 # ── 가짜 임베딩 모델 (e5를 불러오지 않는다) ───────────────────────────
 
 

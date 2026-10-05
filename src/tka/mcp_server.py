@@ -21,9 +21,17 @@ from pydantic import Field
 from tka.service import KnowledgeService, default_service
 
 INSTRUCTIONS = (
-    "북적북적(KTB4-13th) 팀의 결정과 문서 근거를 돌려준다. 다른 파트(AI·BE·FE·CLOUD)의 API 방식, "
-    "응답 형식, 필드 이름, 설계 선택을 코드에 쓰기 전에 추측하지 말고 먼저 확인한다. 답 문장은 "
-    "돌려준 근거를 읽고 직접 쓴다."
+    "북적북적(KTB4-13th) 팀의 결정과 문서 근거, API 명세와 실제 코드의 대조 결과를 돌려준다. "
+    "다른 파트(AI·BE·FE·CLOUD)의 API 경로·메서드, 응답 형식, 필드 이름, 설계 선택을 코드에 쓰기 "
+    "전에 추측하지 말고 먼저 확인한다. 답 문장은 돌려준 근거를 읽고 직접 쓴다."
+)
+CHECK_API_DESCRIPTION = (
+    "KTB4-13th 팀 API의 명세(AI 명세·풀스택 FS-2)와 실제 서버 코드(AI FastAPI·BE Spring), "
+    "그 API를 부르는 코드(FE→BE, BE→AI)를 맞춘 결과를 돌려준다. 다른 파트 API를 부르거나 "
+    "구현하는 코드를 쓰기 전, PR을 점검할 때 '이 경로·메서드가 명세와 맞나, 서버에 실제로 있나, "
+    "누가 부르나'를 확인하려고 부른다. 엔드포인트마다 상태(일치·메서드 다름·명세에만·코드에만·"
+    "서버에 없음)와 `레포/경로:줄@커밋` 위치를 준다. 검색어를 비우면 어긋난 곳 목록이다. "
+    "요청·응답 필드는 보지 않는다 — 필드는 search_docs로 명세를 찾는다."
 )
 GET_DECISION_DESCRIPTION = (
     "KTB4-13th 팀 결정 로그에서 기술 결정을 찾는다. 다른 파트의 API 방식·응답 형식·필드·설계 선택"
@@ -74,6 +82,23 @@ def build_server(service: KnowledgeService) -> MCPServer:
         k: Annotated[int, Field(description="돌려줄 조각 수", ge=1, le=10)] = 5,
     ) -> str:
         return service.search_docs(query, k)
+
+    @server.tool(
+        description=CHECK_API_DESCRIPTION,
+        annotations=ToolAnnotations(read_only_hint=True, idempotent_hint=True),
+    )
+    def check_api(
+        query: Annotated[
+            str,
+            Field(
+                description="API 경로나 그 일부, 또는 명세 설명 낱말. 예: '/api/v1/cart/items', "
+                "'recommend/feed', '장바구니'. 비우면 어긋난 곳 목록"
+            ),
+        ] = "",
+        method: Annotated[str, Field(description="GET·POST·PUT·PATCH·DELETE. 비우면 전부")] = "",
+        limit: Annotated[int, Field(description="돌려줄 API 수", ge=1, le=60)] = 20,
+    ) -> str:
+        return service.check_api(query, method, limit)
 
     return server
 

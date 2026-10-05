@@ -2,9 +2,9 @@
 
 북적북적 팀(KTB4-13th) 레포 5개(AI·BE·FE·CLOUD·wiki)의 문서와 코드를 근거로 팀 질문에 답하는 팀 전용 지식 에이전트.
 
-현재 단계: **v1 시작** — API 대조표(implementation.md ⑨, 2026-10-06)까지. 다음은 대조표 MCP 도구(implementation.md §4 #11).
+현재 단계: **v1 시작** — API 대조표와 그 MCP 도구 `check_api`(implementation.md ⑨, §4 #10·#11, 2026-10-06)까지.
 - v0: 구현 8단계 끝 (2026-09-30, 튜닝용 봇 90% vs 베이스라인 92%). 범위 = wiki 레포 `docs/`만, 입구는 `tka` 명령과 본인 Claude Code의 MCP 도구. 자동 생성 검증셋은 만들었지만 봇 실행·채점은 보류(채점 모델이 사람과 맞지 않음, implementation.md ⑥).
-- API 대조표는 네 레포(wiki·AI·BE·FE) 코드와 명세를 LLM 없이 맞춘다(`python -m tka.contracts`).
+- API 대조표는 네 레포(wiki·AI·BE·FE) 코드와 명세를 LLM 없이 맞춘다. 개발용은 `python -m tka.contracts`(고정 커밋), 사용은 MCP `check_api`·`tka api`(최신 main).
 
 **실험 비용**: LLM 실험은 한 번에 $3 이하로 쓰고, 넘을 것 같으면 돌리기 전에 예상 비용을 말하고 허락받는다. 생성·채점 모델은 `openai/gpt-4o-mini`가 기본이다.
 

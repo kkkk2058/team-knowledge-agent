@@ -3,9 +3,10 @@
     tka ask "질문"        문서를 근거로 답한다 (LLM, 문장마다 인용)
     tka search "질문"     문서 조각과 인용 (MCP search_docs와 같은 글)
     tka decision "주제"   결정 로그의 결정 (MCP get_decision과 같은 글)
+    tka api "경로"        API 명세 ↔ 서버 코드 ↔ 호출 코드 대조 (MCP check_api와 같은 글)
     tka log               호출 로그 (MCP와 CLI)
 
-기본은 최신 wiki main을 따른다(MCP와 같다). --pinned면 설정의 기준 커밋(평가와 같은 문서)이다.
+기본은 최신 main을 따른다(MCP와 같다). --pinned면 설정의 기준 커밋(평가와 같은 문서)이다.
 호출은 data/calls.jsonl에 via "cli"로 남는다. 개발·평가 명령은 python -m tka.<모듈>로 따로 있다.
 """
 
@@ -36,6 +37,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(service.get_decision(args.query, args.part, args.limit, args.all))
         elif args.command == "search":
             print(service.search_docs(args.query, args.k))
+        elif args.command == "api":
+            print(service.check_api(args.query, args.method, args.limit))
         else:
             _ask(service, args.question, OpenRouter(args.model, load_api_key(ROOT / ".env")))
     except (FetchError, DecisionError, LLMError) as e:
@@ -79,6 +82,11 @@ def _parser() -> argparse.ArgumentParser:
     decision.add_argument("--part", default="", help="AI, BE, FE, CLD, TEAM, FS")
     decision.add_argument("--limit", type=int, default=10)
     decision.add_argument("--all", action="store_true", help="대체된 옛 결정도 보여 준다")
+
+    api = commands.add_parser("api", parents=[source], help="API 명세 ↔ 코드 ↔ 호출 대조")
+    api.add_argument("query", nargs="?", default="", help="경로나 그 일부. 비우면 어긋난 곳 목록")
+    api.add_argument("--method", default="", help="GET, POST, PUT, PATCH, DELETE")
+    api.add_argument("--limit", type=int, default=20)
 
     log = commands.add_parser("log", help="호출 로그 (MCP와 CLI)")
     log.add_argument("-n", "--limit", type=int, default=20, help="보여 줄 호출 수")
