@@ -34,10 +34,12 @@ TYPES = (
     "모름",
     "회의 결정",
     "레포 횡단",
+    "현행 결정",  # 자동 생성 검증셋: 결정 로그 한 행의 지금 값 (tka.bigset)
 )
 VERSIONS = ("v0", "v1", "v2", "v3")
-STATUSES = ("확인 대기", "확정", "후보")
-ID_PATTERN = re.compile(r"g\d{2,}")
+STATUSES = ("확인 대기", "확정", "후보", "자동 생성")
+SPLITS = ("dev", "test")  # 자동 생성 검증셋: dev는 틀린 이유를 보고 고쳐도 되고, test는 합계만 본다
+ID_PATTERN = re.compile(r"[gb]\d{2,}")  # g: 골든셋, b: 자동 생성 검증셋
 LINES_PATTERN = re.compile(r"(\d+)(?:-(\d+))?")
 
 
@@ -72,6 +74,7 @@ class GoldenItem:
     trap: str | None
     note: str | None
     absent_terms: tuple[str, ...]
+    split: str | None = None  # dev · test (자동 생성 검증셋만)
 
 
 @dataclass(frozen=True)
@@ -137,7 +140,7 @@ def _parse_item(raw: Any, where: str, source_commits: dict[str, str]) -> GoldenI
         raise GoldenError(f"{where}: 매핑이 아니다")
     item_id = _field(raw, "id", str, where)
     if not ID_PATTERN.fullmatch(item_id):
-        raise GoldenError(f"{where}.id: 'g' + 숫자 두 자리 이상이어야 한다: {item_id!r}")
+        raise GoldenError(f"{where}.id: 'g'·'b' + 숫자 두 자리 이상이어야 한다: {item_id!r}")
     where = item_id
 
     kind = _choice(raw, "type", TYPES, where)
@@ -170,6 +173,7 @@ def _parse_item(raw: Any, where: str, source_commits: dict[str, str]) -> GoldenI
         trap=_optional_text(raw, "trap", where),
         note=_optional_text(raw, "note", where),
         absent_terms=absent_terms,
+        split=_choice(raw, "split", SPLITS, where) if raw.get("split") is not None else None,
     )
 
 
