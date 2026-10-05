@@ -33,6 +33,50 @@ decisions:
   log: docs/dec/000-decision-log.md
   corrections: config/ktb13-supersedes.yaml
 
+# API 대조표 (implementation.md ⑨). 명세 ↔ 서버 코드 ↔ 호출 코드를 LLM 없이 맞춘다.
+# 소스는 문서 색인(sources)과 따로 받는다. 같은 이름이면 캐시 폴더를 다른 커밋으로 덮어쓴다.
+# 네 레포를 같은 날의 main으로 고정해야 명세와 코드를 같은 시점끼리 비교한다.
+contracts:
+  sources:
+    - name: contracts-wiki
+      repo: 100-hours-a-week/KTB4-13th-wiki
+      ref: b772ba5  # main, 2026-09-30
+      include: [docs/ai/1-model-api/spec.md, docs/fs/2-api/spec.md]
+    - name: ai
+      repo: 100-hours-a-week/KTB4-13th-AI
+      ref: 421a77c  # main, 2026-10-02
+      include: [app/]
+      extensions: [.py]
+    - name: be
+      repo: 100-hours-a-week/KTB4-13th-BE
+      ref: 8faa0c1  # main, 2026-10-02
+      include: [src/main/java/]
+      extensions: [.java]
+    - name: fe
+      repo: 100-hours-a-week/KTB4-13th-FE
+      ref: e27e18c  # main, 2026-10-02
+      include: [src/]
+      extensions: [.ts, .tsx]
+  services:
+    - name: AI
+      spec: {source: contracts-wiki, path: docs/ai/1-model-api/spec.md}
+      server: {source: ai, kind: fastapi}
+    - name: BE
+      spec: {source: contracts-wiki, path: docs/fs/2-api/spec.md}
+      server: {source: be, kind: spring}
+  callers:
+    - name: BE→AI
+      target: AI
+      source: be
+      kind: restclient
+      paths: ["src/main/java/*/infrastructure/client/ai/*"]
+    - name: FE→BE
+      target: BE
+      source: fe
+      kind: fetch
+      path_prefix: /api/v1
+      functions: [fetchWithAuth, fetchPublic]
+
 # 같은 것을 가리키는 말 묶음. 결정 찾기에서 서로 바꿔 찾는다.
 # ①~⑧은 AI 엔드포인트 번호다 (docs/ai/1-model-api/spec.md §1).
 aliases:

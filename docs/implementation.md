@@ -25,6 +25,7 @@ src/tka/
   index/              키워드 인덱스, 벡터 인덱스
   retrieve/           하이브리드 검색 + RRF
   answer/             프롬프트, 인용 검증
+  contracts/          API 대조표: 명세·서버 코드·호출 코드 파싱 → 대조 → 마크다운 (⑨)
   core.py             search_docs(), get_decision()  ← 근거 찾기·글 만들기
   service.py          최신 main 따라가기 + 도구 호출 + 호출 로그  ← 입구가 같이 쓴다
   calllog.py          호출 로그 쓰기·읽기 (data/calls.jsonl)
@@ -160,6 +161,30 @@ eval/
 - 2026-09-30 확인: MCP 서버는 연결돼 있었지만 호출 로그가 한 줄도 없었다(연결 뒤 실제로 불린 적이 없다). plan.md §1-1대로 `~/.claude/CLAUDE.md`에 언제 부를지 한 줄 적는다.
 - 도구 설명(description)이 호출 여부를 좌우한다. "팀 결정·명세·정책을 확인해야 할 때"처럼 **언제 불러야 하는지**를 쓴다.
 
+### ⑨ API 대조표 (plan.md D3, D13)
+
+```bash
+uv run python -m tka.contracts fetch    # 설정의 contracts.sources를 고정 커밋으로 받는다
+uv run python -m tka.contracts check --out eval/results/<날짜>-contracts/report.md
+```
+
+- **LLM을 쓰지 않는다.** 정규식으로 엔드포인트를 뽑고 규칙으로 맞춘다. 비용이 0이고 결과가 매번 같다.
+- **소스는 문서 색인과 따로 받는다**(`contracts.sources`). 이름이 같으면 같은 캐시 폴더를 다른 커밋으로 덮어써 평가 기준 커밋(`4f6a6a6`)이 깨지므로 설정에서 막는다. 네 레포를 같은 날의 main으로 고정해야 명세와 코드를 같은 시점끼리 비교한다.
+- **뽑는 곳** (`contracts/parse.py`):
+  - 명세: 표 칸이나 `<summary>` 안에 `METHOD /경로`만 적힌 줄. 본문 문장 속 언급은 세지 않는다.
+  - FastAPI: `APIRouter(prefix=)` + `@router.get(...)`, `include_router(..., prefix=)`, `@app.get(...)`.
+  - Spring 서버: 클래스 선언 앞 `@RequestMapping`이 접두어, 뒤의 `@GetMapping` 등이 엔드포인트. 메서드에 붙은 `@RequestMapping`은 `RequestMethod.X`가 없으면 메서드를 모른다.
+  - Spring 호출: `.post().uri(PATH)`에서 PATH는 같은 파일의 `static final String` 상수나 문자열. `uriBuilder` 람다 안의 상수도 읽는다. 못 읽은 호출은 따로 센다(뭉뚱그려 빼지 않는다).
+  - fetch 호출: 설정한 접두어(`/api/v1`)로 시작하는 문자열. 리터럴이 함수의 첫 인자면 그 호출 인자에서 `method:`를 찾고, 없으면 `functions`에 든 함수(기본 GET)만 GET이다. 래퍼 함수(`requestCartItemDeletion(path)`)는 메서드를 모른다(`?`).
+- **맞추는 법** (`contracts/compare.py`): 경로 변수 이름·쿼리·끝 슬래시를 지운 경로와 메서드가 같으면 같은 엔드포인트다.
+  - 명세 ↔ 서버: 메서드까지 맞는 쌍을 먼저 다 고른 뒤 남은 것끼리 "메서드 다름"을 고른다. 한 번에 고르면 PATCH 명세가 DELETE 코드와 짝지어진다.
+  - 호출 ↔ 서버: 호출 경로는 변수 자리에 실제 값이 들어간다(`/auth/kakao/login` ↔ `/auth/{providerType}/login`). 경로가 똑같은 것을 먼저 찾고, 없으면 변수 자리를 아무 값으로 본다.
+  - "비슷한 코드 경로" 힌트는 두 경로가 함께 가진 앞 조각(`/api/v1`)을 빼고 비교한다. 빼지 않으면 `POST /payments`에 `POST /recommend/chat`이 붙는다.
+  - "아무도 안 부름"에서 메서드를 모르는 호출은 같은 경로의 서버 엔드포인트를 모두 부를 수 있는 것으로 본다.
+- **한계**: 경로를 여러 개 적은 매핑은 첫 경로만, 블록 주석 안 매핑은 걸러내지 못한다. 요청·응답 필드는 보지 않는다(v2).
+- **결과 (2026-10-06, `eval/results/2026-10-06-contracts/report.md`)**: AI 명세 8 = 코드 8. BE는 FS-2 40개 중 14개 일치, 메서드 다름 1(장바구니 수량 `PATCH` ↔ `PUT`), 명세에만 25, 코드에만 19. 호출은 BE→AI 4개, FE→BE 26개 모두 서버에 있다. 모순 정답셋 #2(코드에만 있는 추천·검색 API)·#4(명세 대비 미구현)를 찾는다.
+- **다음**: MCP 도구(코딩 중 "이 API 명세랑 맞아?"), 최신 main 따라가기(⑧과 같은 방식).
+
 ## 4. 구현 순서 — 한 줄이 PR 하나
 
 순서는 plan.md D9(평가 먼저)를 따른다. 골든셋과 베이스라인은 코드가 필요 없고, 베이스라인 점수가 먼저 있어야 이후 PR의 개선을 수치로 말할 수 있다.
@@ -176,6 +201,8 @@ eval/
 | 7 | 답변 생성(CLI·채점용) + 인용 검증 + 채점 | 베이스라인과 비교 표. 최종 비교는 채점용 질문으로 |
 | 8 | CLI 정리, MCP 호출 로그 | 호출 로그가 쌓인다 |
 | 9 | 자동 생성 검증셋 + LLM 채점 (plan.md D18) → 봇 전 문항, 베이스라인 일부. 생성과 채점 일치율까지 했고 실행은 보류 | 사람 채점과 일치율, test 문항 정답률 비교 표 |
+| 10 | API 대조표(⑨): 명세 ↔ 서버 코드 ↔ 호출 코드, 고정 커밋 기준 명령 | 모순 정답셋 #2·#4를 찾는다. FS-2 대비 구현 여부 표를 레포 주인이 확인 |
+| 11 | API 대조표 MCP 도구 + 최신 main 따라가기 | 코딩 중 호출 로그 |
 
 PR마다 이슈 → `feature|fix|chore|hotfix/<이슈번호>-<이름>` 브랜치 → PR로 올리고, 병합은 레포 주인이 한다.
 

@@ -7,6 +7,8 @@
 > 09-28 당시: **wiki main은 같은 날 `4f6a6a6`까지 나아갔다** (PR #181~#185: AI 명세·설계 문서, 결정 로그, ERD 수정 / PR #184: FS 문서 병합). 2026-09-30 확인 시 그 뒤 변화는 없다. 이 문서의 wiki 사실과 줄 번호는 아직 `eff2eab`·`ddfba15` 기준이다.
 >
 > 이 문서를 쓰는 **하루 사이에도** BE가 AI 챗봇 연동을 시작해 "연동 코드 없음"이 틀린 사실이 됐다(§4). 레포는 매일 바뀐다.
+>
+> API 경로·메서드(§4 BE↔AI 연동, §5-1 #2·#4)는 **2026-10-06** API 대조표로 다시 확인했다: wiki `b772ba5` · AI `421a77c` · BE `8faa0c1` · FE `e27e18c` (모두 main, [eval/results/2026-10-06-contracts/report.md](../eval/results/2026-10-06-contracts/report.md)).
 
 ## 1. 서비스와 팀
 
@@ -86,13 +88,11 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 - **풀스택 테이블** (FS-1): 6개 도메인, 테이블 28개, MySQL InnoDB. 시각 컬럼은 `DATETIME(6)`(타임존 없음), 금액·포인트는 `DECIMAL`. 소프트 삭제는 `deleted_at` + `active_flag`. ERD 원본은 ERDCloud에 있다.
 - **풀스택 기술 스택** (FS-3): Java 25, Gradle, Spring, MySQL(InnoDB), Redis.
 - **비즈니스 정책** (FS-4): 본문에 "최종본"이라고 명시. 결제는 테스트 운영, 배송비 0원, 실제 배송·회수·정산 제외, 탈퇴 신청 후 7일 복구 가능, 포인트 1점 = 1원. 원본 체크리스트 126개 대응표 포함.
-- **BE↔AI 연동**: 2026-09-28 BE `f32eb67`에서 ③ 챗봇 연동이 시작됐다.
-  - BE `core/recommendation/`: `RecommendationController`가 `@RequestMapping("/api/v1/recommend")` 아래 `POST /chat`, `GET /cards/{recommendationCardId}`를 연다.
-  - `infrastructure/client/ai/AiRecommendationClientImpl`이 AI `/recommendations/chat`을 호출한다. 설정은 `ai.yml`(`ai.base-url`, `ai.service-token`).
-  - AI 응답 봉투는 `AiChatEnvelope`가 `data`만 읽고 나머지 필드는 무시한다.
-  - 추천 카드는 BE가 저장한다(`V19__create_recommendation_cards.sql`) — AI 명세의 "`reason_long`은 BE가 보관"과 맞는 방향이다.
-  - ①②④⑥⑦ 연동은 파일 경로 기준으로 아직 보이지 않는다.
-  - AI `app/main.py`에는 "BE 연동을 시작하면 이 블록과 dev/ 폴더를 함께 삭제한다"는 주석이 아직 있다(2026-09-28, 로컬 작업 브랜치 기준).
+- **BE↔AI 연동** (2026-10-06, BE `8faa0c1`): BE가 AI ①③④⑥을 부른다. ②(내부 전용)·⑤⑦(V2)은 부르지 않는다. 네 호출 모두 경로·메서드가 AI 코드와 맞다.
+  - 호출 코드는 `core/*/infrastructure/client/ai/`에 있다: `BookSearchClientImpl`(① `POST /search`), `AiRecommendationClientImpl`(③ `POST /recommendations/chat`), `RecommendationFeedClientImpl`(④ `GET /recommendations/feed`), `AiPersonalizationProfileClientImpl`(⑥ `POST /preferences/profile`). 설정은 `ai.yml`(`ai.base-url`, `ai.service-token`).
+  - BE가 FE에 여는 쪽: `/api/v1/recommend`(`POST /chat`, `GET /cards/{recommendationCardId}`, `GET /feed`), `GET /api/v1/search`. 모두 FS-2에 없다(§5-1 #2).
+  - 2026-09-28 `f32eb67` 확인: AI 응답 봉투는 `AiChatEnvelope`가 `data`만 읽고 나머지 필드는 무시한다. 추천 카드는 BE가 저장한다(`V19__create_recommendation_cards.sql`) — AI 명세의 "`reason_long`은 BE가 보관"과 맞는 방향이다.
+  - 요청·응답 **필드**가 AI 명세와 맞는지는 아직 확인하지 않았다(§7).
 
 ## 5. 결정이 뒤집힌 이력 — 함정 질문 재료
 
@@ -116,9 +116,9 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 | # | 어긋남 | 근거 |
 |---|---|---|
 | 1 | 공통 응답 형식: 결정 로그 09-17은 "FS·AI 공통 `{message, data}`"인데, FS-2는 `{ result, data, error }`. 결정 로그에 형식 변경 기록이 없다 | `dec/000-decision-log.md` 09-17 행, `fs/2-api/spec.md` "공통 응답" |
-| 2 | 검색·추천·챗봇 경로: AI 명세는 ①③④를 "BE가 호출한다"고 하는데, FS-2 엔드포인트 40개에는 검색·추천·챗봇이 없다. 반면 BE 코드(`f32eb67`)에는 `POST /api/v1/recommend/chat`, `GET /api/v1/recommend/cards/{id}`가 있다 → "코드에는 있는데 명세에는 없는 API" | `ai/1-model-api/spec.md` §1, `fs/2-api/spec.md`, BE `core/recommendation/api/RecommendationController.java` |
+| 2 | 검색·추천·챗봇 경로: AI 명세는 ①③④를 "BE가 호출한다"고 하는데, FS-2 엔드포인트 40개에는 검색·추천·챗봇이 없다. 반면 BE 코드에는 `POST /api/v1/recommend/chat`, `GET /api/v1/recommend/cards/{id}`, `GET /api/v1/recommend/feed`, `GET /api/v1/search`가 있고 FE가 chat·feed·search를 부른다(2026-10-06 `8faa0c1`) → "코드에는 있는데 명세에는 없는 API" | `ai/1-model-api/spec.md` §1, `fs/2-api/spec.md`, BE `core/recommendation/api/RecommendationController.java`, `core/search/api/SearchController.java` |
 | 3 | 배송: AI V2 tool에 `delivery.track`(배송 조회)이 있는데, FS-4는 실제 배송을 범위에서 제외하고 FS-2에 배송 엔드포인트가 없다 | `ai/1-model-api/spec.md` tool 표, `fs/4-business-policy/spec.md` §1 |
-| 4 | 명세 대비 구현: FS-2 도메인은 12개, BE 컨트롤러는 `f32eb67` 기준 10개(onboarding, recommendation 포함). 회원·결제·쿠폰·포인트·알림 컨트롤러 파일이 없고, 반대로 recommendation은 FS-2에 없다 (파일명 기준, 다른 컨트롤러에 들어 있을 수 있음. 개발 진행 중이라 미구현일 수 있음) | `fs/2-api/spec.md`, BE `src/main/java/com/book/core/*/api/` |
+| 4 | 명세 대비 구현 (2026-10-06 API 대조표, BE `8faa0c1`): FS-2 40개 중 14개만 경로·메서드가 코드와 같다. 장바구니 수량 변경은 명세 `PATCH`, 코드 `PUT`. 회원 3·결제 3·쿠폰 2·포인트 1·알림 2·리뷰 목록 1은 코드에 없다. 배송지(`/addresses` ↔ `/user-addresses`)·온보딩(`/users/me/onboarding` ↔ `/onboarding`)·상품 상세(`/items/{itemId}` ↔ `/products/{productId}`)·주문 생성(`/orders`·`/cart-orders` ↔ `/orders/checkout`)은 경로가 다르다. 개발 진행 중이라 미구현이거나 명세가 덜 고쳐진 것일 수 있다 | `fs/2-api/spec.md`, BE `src/main/java/com/book/core/*/api/` |
 | 5 | 같은 문서 안 모순: FS-1에서 `active_flag`를 한 곳은 STORED, 다른 곳은 VIRTUAL 생성 컬럼이라고 한다 | `fs/1-table-spec/spec.md` 22행 · 55행 |
 | 6 | 상태 표기: FS-4 frontmatter `status: 작성중`, 본문은 "최종본" | `fs/4-business-policy/spec.md` |
 | 7 | 같은 문서 안 요약 누락 (후보): AI ERD 19행 "BE 복제" 요약에는 `v_books`, `v_book_popularity`, `v_user_*` 3종만 있고 `v_products`가 없다. 68행 표와 §3.11은 `v_products`를 정의한다(09-25 결정, AI #208) | `ai/9-data-erd/spec.md` 19행 · 68행 · 262행 |
@@ -137,6 +137,6 @@ AI 레포 docs/ (wiki/ 제외)              ← 원본 (개발-로그, trouble)
 ## 7. 아직 확인하지 않은 것
 
 - CLOUD 레포 자체 GitHub Wiki와 wiki 레포 `docs/cld/`의 관계 (같은 내용의 원본과 변환본인지).
-- BE의 ①②④⑥⑦ 연동 여부, BE가 AI에 보내는 요청 필드가 AI 명세와 맞는지 (③ 챗봇 연동만 확인, §4).
+- BE가 AI에 보내는 요청·받는 응답의 **필드**가 AI 명세와 맞는지. 경로·메서드는 API 대조표로 확인했다(§4).
 - wiki main `4f6a6a6`에서 바뀐 내용이 §4·§5의 사실과 줄 번호에 주는 영향 (골든셋 §6은 `4f6a6a6`로 다시 맞췄다).
 - FS 문서의 원본이 Notion(API)·ERDCloud(ERD)에도 있는데, wiki 변환본과 어느 쪽이 최신인지.
