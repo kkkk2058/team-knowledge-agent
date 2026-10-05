@@ -56,6 +56,47 @@ class DecisionsConfig:
     corrections: Path | None  # 번복 관계 보정 파일, 이 레포 루트 기준
 
 
+SERVER_KINDS = ("fastapi", "spring")
+CALLER_KINDS = ("restclient", "fetch")
+
+
+@dataclass(frozen=True)
+class ServiceContract:
+    """API를 여는 쪽 하나: 명세 문서와 서버 코드."""
+
+    name: str  # 예: AI
+    spec_source: str  # contracts.sources의 이름
+    spec_path: str  # 그 소스 레포 루트 기준
+    server_source: str
+    server_kind: str  # SERVER_KINDS
+
+
+@dataclass(frozen=True)
+class CallerContract:
+    """API를 부르는 쪽 하나."""
+
+    name: str  # 예: BE→AI
+    target: str  # 부르는 서비스 이름 (ServiceContract.name)
+    source: str  # contracts.sources의 이름
+    kind: str  # CALLER_KINDS
+    paths: tuple[str, ...]  # 소스 파일 중 이 패턴(fnmatch)에 맞는 것만. 비면 전부
+    path_prefix: str = "/"  # fetch: 이 문자열로 시작하는 문자열만 API 경로로 본다
+    # fetch: 첫 인자가 경로이고 method를 안 적으면 GET인 함수. 그 밖의 함수는 메서드를 모른다
+    functions: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ContractsConfig:
+    """API 대조표 (implementation.md ⑨). 소스는 문서 색인과 따로 받는다."""
+
+    sources: tuple[Source, ...]
+    services: tuple[ServiceContract, ...]
+    callers: tuple[CallerContract, ...]
+
+    def source(self, name: str) -> Source:
+        return next(s for s in self.sources if s.name == name)
+
+
 @dataclass(frozen=True)
 class Config:
     team: str
@@ -66,6 +107,7 @@ class Config:
     decisions: DecisionsConfig | None = None
     # 같은 것을 가리키는 말 묶음. 예: ("④", "feed", "피드"). 결정 찾기에서 서로 바꿔 찾는다.
     aliases: tuple[tuple[str, ...], ...] = ()
+    contracts: ContractsConfig | None = None
 
     def source_for_repo(self, repo_name: str) -> Source | None:
         """레포 이름(owner 제외)으로 소스를 찾는다. 설정에 없으면 None."""
@@ -101,7 +143,83 @@ def load_config(path: Path) -> Config:
         sources=sources,
         decisions=_parse_decisions(raw.get("decisions"), names),
         aliases=_parse_aliases(raw.get("aliases")),
+        contracts=_parse_contracts(raw.get("contracts"), names),
     )
+
+
+def _parse_contracts(raw: Any, index_source_names: list[str]) -> ContractsConfig | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ConfigError("contracts: 매핑이 아니다")
+    where = "contracts"
+    sources = tuple(
+        _parse_source(s, f"{where}.sources[{i}]")
+        for i, s in enumerate(_get(raw, "sources", list, where))
+    )
+    names = [s.name for s in sources]
+    duplicates = sorted({n for n in names if names.count(n) > 1})
+    if duplicates:
+        raise ConfigError(f"{where}.sources: 이름이 겹친다: {', '.join(duplicates)}")
+    # 캐시 폴더 이름이 소스 이름이다. 같은 이름이면 문서 색인의 기준 커밋을 덮어쓴다.
+    shared = sorted(set(names) & set(index_source_names))
+    if shared:
+        raise ConfigError(f"{where}.sources: sources와 이름이 겹친다: {', '.join(shared)}")
+
+    def known(name: str, label: str) -> str:
+        if name not in names:
+            raise ConfigError(f"{label}: contracts.sources에 없는 이름이다: {name!r}")
+        return name
+
+    services = []
+    for i, s in enumerate(_get(raw, "services", list, where)):
+        label = f"{where}.services[{i}]"
+        if not isinstance(s, dict):
+            raise ConfigError(f"{label}: 매핑이 아니다")
+        spec = _get(s, "spec", dict, label)
+        server = _get(s, "server", dict, label)
+        services.append(
+            ServiceContract(
+                name=_get(s, "name", str, label),
+                spec_source=known(_get(spec, "source", str, f"{label}.spec"), f"{label}.spec"),
+                spec_path=_get(spec, "path", str, f"{label}.spec"),
+                server_source=known(
+                    _get(server, "source", str, f"{label}.server"), f"{label}.server"
+                ),
+                server_kind=_choice(server, "kind", SERVER_KINDS, f"{label}.server"),
+            )
+        )
+    service_names = [s.name for s in services]
+    if len(set(service_names)) != len(service_names):
+        raise ConfigError(f"{where}.services: 이름이 겹친다")
+
+    callers = []
+    for i, c in enumerate(raw.get("callers") or []):
+        label = f"{where}.callers[{i}]"
+        if not isinstance(c, dict):
+            raise ConfigError(f"{label}: 매핑이 아니다")
+        target = _get(c, "target", str, label)
+        if target not in service_names:
+            raise ConfigError(f"{label}.target: services에 없는 이름이다: {target!r}")
+        callers.append(
+            CallerContract(
+                name=_get(c, "name", str, label),
+                target=target,
+                source=known(_get(c, "source", str, label), label),
+                kind=_choice(c, "kind", CALLER_KINDS, label),
+                paths=_str_list(c, "paths", label, required=False),
+                path_prefix=_get(c, "path_prefix", str, label) if "path_prefix" in c else "/",
+                functions=_str_list(c, "functions", label, required=False),
+            )
+        )
+    return ContractsConfig(sources, tuple(services), tuple(callers))
+
+
+def _choice(raw: dict, key: str, choices: tuple[str, ...], where: str) -> str:
+    value = _get(raw, key, str, where)
+    if value not in choices:
+        raise ConfigError(f"{where}.{key}: {' · '.join(choices)} 중 하나다: {value!r}")
+    return value
 
 
 def _parse_decisions(raw: Any, source_names: list[str]) -> DecisionsConfig | None:

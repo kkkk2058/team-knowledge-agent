@@ -37,6 +37,51 @@ def test_team_config_loads_with_pinned_commit():
     assert config.decision_log_year == 2026
 
 
+def test_team_config_contracts_pin_four_repos_apart_from_index_sources():
+    contracts = load_config(TEAM_CONFIG).contracts
+
+    assert contracts is not None
+    assert [s.name for s in contracts.sources] == ["contracts-wiki", "ai", "be", "fe"]
+    assert all(COMMIT_PATTERN.fullmatch(s.ref) for s in contracts.sources)
+    assert [(s.name, s.server_kind) for s in contracts.services] == [
+        ("AI", "fastapi"),
+        ("BE", "spring"),
+    ]
+    assert [(c.name, c.target, c.kind) for c in contracts.callers] == [
+        ("BE→AI", "AI", "restclient"),
+        ("FE→BE", "BE", "fetch"),
+    ]
+
+
+def test_contract_caller_target_must_be_a_service(tmp_path):
+    data = _valid()
+    data["contracts"] = {
+        "sources": [{"name": "be", "repo": "o/be", "ref": "1234567", "include": ["src/"]}],
+        "services": [],
+        "callers": [{"name": "x", "target": "AI", "source": "be", "kind": "fetch"}],
+    }
+
+    with pytest.raises(ConfigError, match="target: services에 없는 이름이다"):
+        load_config(_write(tmp_path, data))
+
+
+def test_contract_kind_must_be_known(tmp_path):
+    data = _valid()
+    data["contracts"] = {
+        "sources": [{"name": "be", "repo": "o/be", "ref": "1234567", "include": ["src/"]}],
+        "services": [
+            {
+                "name": "BE",
+                "spec": {"source": "be", "path": "a.md"},
+                "server": {"source": "be", "kind": "django"},
+            }
+        ],
+    }
+
+    with pytest.raises(ConfigError, match="kind: fastapi · spring 중 하나다"):
+        load_config(_write(tmp_path, data))
+
+
 def test_optional_lists_default(tmp_path):
     source = load_config(_write(tmp_path, _valid())).sources[0]
 

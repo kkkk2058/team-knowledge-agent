@@ -108,6 +108,17 @@ uv run python -m tka.evaluation template eval/results/<날짜>-deepwiki --system
 uv run python -m tka.evaluation summary eval/results/<run>
 ```
 
+### API 대조표
+
+명세 ↔ 서버 코드 ↔ 호출 코드(FE→BE, BE→AI)를 LLM 없이 맞춘다. 소스는 `config/ktb13.yaml`의 `contracts.sources`(네 레포를 같은 날 main으로 고정)를 따로 받는다.
+
+```bash
+uv run python -m tka.contracts fetch
+uv run python -m tka.contracts check --out eval/results/<날짜>-contracts/report.md
+```
+
+명세에만 있는 것, 코드에만 있는 것, 메서드만 다른 것, 서버에 없는 경로를 부르는 호출, 아무도 안 부르는 서버 엔드포인트를 보여준다. 의도된 차이인지는 사람이 판단한다.
+
 ## 문서
 
 작업 규칙과 문서 안내는 [CLAUDE.md](CLAUDE.md)에 있다.
