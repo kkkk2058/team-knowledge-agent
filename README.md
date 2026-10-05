@@ -30,10 +30,12 @@ alias tka='uv run --directory /path/to/team-knowledge-agent-live tka'
 tka decision "feed 메서드"              # 결정 로그의 결정 (상태·이전 결정·인용)
 tka search "상품 목록 API 페이지 방식"    # 문서 조각과 인용
 tka ask "홈 피드는 POST로 부르나?"       # 문서를 근거로 답한다 (LLM, 질문당 약 $0.001)
+tka api recommend/feed                  # API 명세 ↔ 서버 코드 ↔ 호출 코드 대조. 비우면 어긋난 곳 목록
 tka log                                 # 호출 로그 (MCP와 tka). --empty면 결과 없음·모름만
 ```
 
-- 기본은 최신 wiki main을 따른다(10분마다 확인). `--pinned`면 평가 기준 커밋(`4f6a6a6`)이다.
+- 기본은 최신 main을 따른다(10분마다 확인). `--pinned`면 설정의 고정 커밋이다(문서는 평가 기준 `4f6a6a6`, 대조표는 `contracts.sources`).
+- `api`는 wiki·AI·BE·FE 네 레포를 읽는다. 처음 한 번은 네 레포를 받느라 10초 안팎 걸린다. LLM을 쓰지 않는다.
 - `ask`는 live 폴더의 `.env`나 환경 변수에 `OPENROUTER_API_KEY`가 필요하다. 모델 기본값은 google/gemini-3.5-flash-lite다. 문장마다 근거가 붙고, 인용(`레포/경로:줄@커밋`)은 LLM이 아니라 코드가 만든다.
 - 처음 한 번은 e5-small 모델을 내려받고 청크를 임베딩한다(1분 안팎). 그 뒤 `search`·`ask`는 모델을 불러오느라 10초 안팎 걸린다.
 - 호출은 `data/calls.jsonl`에 남는다(커밋하지 않음). 틀린 답과 "모름"은 골든셋 재료다.
@@ -44,10 +46,10 @@ tka log                                 # 호출 로그 (MCP와 tka). --empty면
 claude mcp add --scope user tka -- uv run --directory /path/to/team-knowledge-agent-live python -m tka.mcp_server
 ```
 
-도구는 `get_decision`(결정 로그)과 `search_docs`(문서 검색) 두 개이고, 답이 아니라 근거를 돌려준다(답은 Claude Code가 쓴다). 도구 설명만으로는 잘 부르지 않으므로 `~/.claude/CLAUDE.md`에 언제 부를지 한 줄 적는다(plan.md §1-1). 예:
+도구는 `get_decision`(결정 로그), `search_docs`(문서 검색), `check_api`(API 명세 ↔ 서버 코드 ↔ 호출 코드 대조) 세 개이고, 답이 아니라 근거를 돌려준다(답은 Claude Code가 쓴다). 새 도구는 live 폴더를 `pull`한 뒤 Claude Code를 다시 시작해야 보인다. 도구 설명만으로는 잘 부르지 않으므로 `~/.claude/CLAUDE.md`에 언제 부를지 한 줄 적는다(plan.md §1-1). 예:
 
 ```text
-KTB4-13th 레포에서 다른 파트의 API·명세 필드·팀 결정은 추측하지 말고 tka MCP 도구(get_decision, search_docs)로 확인한다.
+KTB4-13th 레포에서 다른 파트의 API·명세 필드·팀 결정은 추측하지 말고 tka MCP 도구(get_decision, search_docs, check_api)로 확인한다.
 ```
 
 튜닝용 20문항 결과 (2026-09-30): 봇 90%(18/20), 베이스라인 Claude Code 92%(18.5/20). 봇은 질문당 $0.0009·1.3초, 베이스라인은 $0.127·21.5초. 자세한 비교는 [eval/results/2026-09-30-bot-vs-baseline.md](eval/results/2026-09-30-bot-vs-baseline.md).

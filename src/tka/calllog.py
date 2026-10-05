@@ -105,7 +105,9 @@ def _row(r: dict[str, Any]) -> str:
     else:
         result = f"{len(r.get('returned') or [])}개"
     elapsed = f"{r['elapsed_ms'] / 1000:.1f}초" if isinstance(r.get("elapsed_ms"), int) else "-"
-    commit = str(r.get("commit") or "?")[:7]
+    commits = r.get("commits")  # API 대조는 여러 레포를 읽는다
+    multi = f"{len(commits)}개 레포" if isinstance(commits, dict) and commits else None
+    commit = str(r.get("commit") or multi or "?")[:7]
     via = (r.get("via") or "mcp").lower()
     return f"{_when(r)}  {via}  {r['tool']}  {result}  {elapsed}  {commit}  {query}"
 

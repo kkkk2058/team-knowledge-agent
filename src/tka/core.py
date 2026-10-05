@@ -11,6 +11,9 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
+from tka.contracts.compare import Report
+from tka.contracts.lookup import ApiEntry, api_entries, find_api
+from tka.contracts.parse import Endpoint
 from tka.decisions.table import Decision, DecisionTable
 from tka.retrieve.search import DEFAULT_SETTINGS, Hit, SearchIndex, SearchSettings
 
@@ -161,6 +164,91 @@ def search_docs(
             )
         lines += ["---", text]
     return "\n".join(lines), hits
+
+
+API_LIMIT = 20  # 검색어 없이 어긋난 곳 목록을 볼 때 기본 개수
+
+_STATUS_TEXT = {
+    "일치": "일치",
+    "메서드 다름": "메서드가 다르다",
+    "명세에만": "명세에만 있다 (코드에 없음)",
+    "코드에만": "코드에만 있다 (명세에 없음)",
+    "서버에 없음": "서버에 없는 경로를 부른다",
+}
+
+
+def check_api(
+    report: Report,
+    query: str = "",
+    method: str = "",
+    limit: int = API_LIMIT,
+    *,
+    note: str | None = None,
+) -> tuple[str, list[ApiEntry]]:
+    """API 대조표에서 찾은 근거 (plan.md D3, D17). 검색어가 비면 어긋난 곳만 심한 순으로."""
+    entries = api_entries(report)
+    found = find_api(entries, query, method)
+    if not query.strip():
+        found = [e for e in found if e.status != "일치"]
+    shown = found[: max(limit, 1)]
+    commits = " · ".join(f"{repo}@{c}" for repo, c in report.commits.items())
+    lines = [
+        f"API 대조 결과 (명세 ↔ 서버 코드 ↔ 호출 코드, LLM 없이 파싱. 기준: {commits}). "
+        "경로·메서드만 본다. 요청·응답 필드는 search_docs로 명세를 찾는다. 의도된 차이인지는 "
+        "해당 파트가 판단한다."
+    ]
+    if note:
+        lines.append(f"알림: {note}")
+    scope = " · ".join(x for x in (f"검색어 '{query}'" if query.strip() else "", method) if x)
+    if not query.strip():
+        lines.append(f"어긋난 곳 {len(found)}개 (일치 {len(entries) - len(found)}개는 뺐다)")
+    else:
+        lines.append(f"{scope}: 맞는 API {len(found)}개")
+    if not found:
+        lines.append(
+            "맞는 API가 없다. 경로 일부(예: 'recommend/feed')나 명세 설명 낱말(예: '장바구니')로 "
+            "다시 찾는다. 대조하는 명세·코드 밖의 API일 수 있다."
+        )
+        return "\n".join(lines), found
+    for e in shown:
+        lines += ["", f"[{e.service}] {e.main.label()} — {_STATUS_TEXT[e.status]}"]
+        if e.spec:
+            desc = f" {e.spec.note} —" if e.spec.note else ""
+            lines.append(f"  명세: {e.spec.label()} —{desc} {_cite(e.spec, report)}")
+        else:
+            lines.append(f"  명세: 없음 ({e.spec_where}에서 찾지 못함)")
+        if e.code:
+            lines.append(f"  코드: {e.code.label()} — {_cite(e.code, report)}")
+        elif e.status != "서버에 없음":
+            hint = (
+                f". 비슷한 코드 경로: {e.hint.label()} — {_cite(e.hint, report)}" if e.hint else ""
+            )
+            lines.append(f"  코드: 없음{hint}")
+        else:
+            lines.append(f"  코드: {e.service} 서버에 이 경로가 없다")
+        for c in e.calls:
+            if c.endpoint.method is None:
+                flag = " (래퍼 함수라 메서드를 코드에서 못 읽음)"
+            else:
+                flag = " (메서드가 서버와 다르다)" if e.code and not c.ok else ""
+            lines.append(
+                f"  호출: {c.caller} {c.endpoint.label()}{flag} — {_cite(c.endpoint, report)}"
+            )
+        if not e.calls and e.code:
+            lines.append(
+                "  호출: 설정한 호출 코드 중 부르는 곳 없음"
+                if e.calls_checked
+                else "  호출: 이 서비스를 부르는 코드는 대조하지 않는다"
+            )
+    if len(found) > len(shown):
+        lines += ["", f"…외 {len(found) - len(shown)}개. 경로나 메서드로 좁혀 다시 부른다."]
+    return "\n".join(lines), shown
+
+
+def _cite(e: Endpoint, report: Report) -> str:
+    repo = e.where.split("/", 1)[0]
+    commit = report.commits.get(repo)
+    return f"{e.where}@{commit}" if commit else e.where
 
 
 def old_text_by_path(table: DecisionTable | None) -> dict[str, list[tuple[int, Decision]]]:

@@ -1,7 +1,14 @@
 import json
+from dataclasses import replace
 
 import pytest
-from helpers import decision_config, fake_embedder, make_decision_repo
+from helpers import (
+    contracts_config,
+    decision_config,
+    fake_embedder,
+    make_contract_repos,
+    make_decision_repo,
+)
 
 from tka import cli
 from tka.answer.llm import LLMResult
@@ -23,9 +30,10 @@ class FakeLLM:
 def pinned(tmp_path, monkeypatch):
     """기준 커밋 사본으로 도는 서비스를 tka 명령에 끼운다. 호출 로그는 tmp_path/data/calls.jsonl."""
     commit = make_decision_repo(tmp_path / ".cache" / "sources" / "wiki")
+    contract_commits = make_contract_repos(tmp_path / ".cache" / "sources")
     embedder, _ = fake_embedder()
     service = KnowledgeService(
-        decision_config(tmp_path, commit),
+        replace(decision_config(tmp_path, commit), contracts=contracts_config(contract_commits)),
         tmp_path,
         live=False,
         embedder=embedder,
@@ -73,6 +81,19 @@ def test_ask_prints_answer_and_footer(pinned, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert out.startswith("GET이다. [1]\n\n근거:\n[1] wiki/docs/dec/log.md:8@")
     assert f"(fake/model · 기준 커밋 {commit[:7]} · " in out and "$0.0012)" in out
+
+
+def test_api_prints_contract_evidence_and_logs_as_cli(tmp_path, pinned, capsys):
+    assert cli.main(["api", "gone", "--method", "GET", "--pinned"]) == 0
+
+    out = capsys.readouterr().out
+    assert "[AI] GET /gone — 서버에 없는 경로를 부른다" in out
+    records = [json.loads(x) for x in (tmp_path / LOG_PATH).read_text().splitlines()]
+    assert [(r["via"], r["tool"], r["args"]["query"]) for r in records] == [
+        ("cli", "check_api", "gone")
+    ]
+    assert cli.main(["log"]) == 0
+    assert "3개 레포  gone" in capsys.readouterr().out  # 여러 레포를 읽은 호출
 
 
 def test_log_shows_calls(tmp_path, pinned, capsys):

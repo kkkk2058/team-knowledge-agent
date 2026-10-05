@@ -106,7 +106,7 @@ Discord에 올린다. 항목마다 초안이 붙고, 올릴지는 사람이 정�
                               │
 [두뇌]  CLI: 질문 해석 → 도구 선택 → 근거 수집 → 인용 달린 답변
         MCP: 근거만 돌려주고 답은 부르는 쪽이 쓴다 (D17)
-        도구: search_docs · get_decision · find_facts · (v2) grep_code · read_file · list_endpoints
+        도구: search_docs · get_decision · check_api(API 대조) · find_facts · (v2) grep_code · read_file
                               │
 [저장]  ① 문서 조각 인덱스   ② 결정 표          ③ 사실 표            (v2) 계약 표
         키워드+벡터(RRF)     날짜·결정·번복관계   주제·값·출처·날짜     명세 vs 코드 엔드포인트

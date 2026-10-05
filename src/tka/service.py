@@ -10,6 +10,8 @@
   data/index.sqlite에 캐시돼 main이 바뀌어도 바뀐 청크만 새로 계산한다. 결정만 찾는
   호출은 e5 모델을 불러오지 않는다.
 - 호출마다 호출 로그(tka.calllog)에 한 줄 남긴다.
+- API 대조표(check_api)도 같은 방식이다. 네 레포(contracts.sources)의 main을 10분마다 확인하고,
+  하나라도 바뀌면 .cache/live/에 받아 대조표를 다시 만든다. 파싱만 해서 몇 초 안에 끝난다.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ from __future__ import annotations
 import os
 import subprocess
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from pathlib import Path
 
@@ -26,6 +28,8 @@ from tka.answer.llm import OpenRouter
 from tka.answer.pipeline import Answer, answer_question
 from tka.calllog import NO_LOG, CallLog
 from tka.config import Config, Source, load_config
+from tka.contracts.compare import Report
+from tka.contracts.report import build_report
 from tka.decisions.table import DecisionTable, build_table
 from tka.index.vector import Embedder
 from tka.ingest.fetch import FetchError, fetch_source, github_url
@@ -57,6 +61,7 @@ class KnowledgeService:
         embedder: Embedder | None = None,
         settings: SearchSettings = DEFAULT_SETTINGS,
         log: CallLog = NO_LOG,
+        contract_urls: Mapping[str, str] | None = None,
     ) -> None:
         if config.decisions is None:
             raise ValueError("설정에 decisions가 없다")
@@ -76,6 +81,12 @@ class KnowledgeService:
         self._index: SearchIndex | None = None
         self._checked_at: float | None = None
         self._note: str | None = None
+        # API 대조표: 소스 이름 → 받을 주소 (테스트는 로컬 저장소), 지금 읽는 main 커밋들
+        self.contract_urls = dict(contract_urls or {})
+        self._report: Report | None = None
+        self._report_heads: dict[str, str] = {}
+        self._contracts_checked_at: float | None = None
+        self._contracts_note: str | None = None
 
     @property
     def commit(self) -> str | None:
@@ -121,6 +132,20 @@ class KnowledgeService:
             args={"query": query, "k": k},
             commit=table.commit,
             returned=[f"{h.chunk.path}:{h.chunk.start_line}-{h.chunk.end_line}" for h in hits],
+            elapsed_ms=_ms_since(started),
+        )
+        return text
+
+    def check_api(self, query: str = "", method: str = "", limit: int = core.API_LIMIT) -> str:
+        started = time.monotonic()
+        report, note = self.contract_report()
+        text, found = core.check_api(report, query, method, limit, note=note)
+        self.log.write(
+            tool="check_api",
+            args={"query": query, "method": method, "limit": limit},
+            commit=None,
+            commits=report.commits,
+            returned=[e.where for entry in found for e in entry.endpoints()],
             elapsed_ms=_ms_since(started),
         )
         return text
@@ -199,6 +224,53 @@ class KnowledgeService:
                 f"최신 {LIVE_BRANCH} 확인에 실패해 마지막으로 받은 "
                 f"{self._table.commit[:7]} 기준으로 답한다 ({e})"
             )
+
+    # ── API 대조표 ────────────────────────────────────────────────────
+
+    def contract_report(self) -> tuple[Report, str | None]:
+        """대조표와, 최신 여부에 대한 알림(없으면 None). 설정에 contracts가 없으면 FetchError."""
+        if self.config.contracts is None:
+            raise FetchError("설정에 contracts가 없다 (config/ktb13.yaml)")
+        if not self.live:
+            if self._report is None:
+                self._report = build_report(self.config, self.root)
+        elif (
+            self._contracts_checked_at is None
+            or self.clock() - self._contracts_checked_at >= REFRESH_SECONDS
+        ):
+            self._refresh_contracts()
+        assert self._report is not None
+        return self._report, self._contracts_note
+
+    def _refresh_contracts(self) -> None:
+        contracts = self.config.contracts
+        assert contracts is not None
+        self._contracts_checked_at = self.clock()
+        try:
+            heads = {
+                s.name: remote_head(self._contract_url(s), LIVE_BRANCH) for s in contracts.sources
+            }
+            if self._report is None or heads != self._report_heads:
+                sources = tuple(replace(s, ref=heads[s.name]) for s in contracts.sources)
+                live_config = replace(
+                    self.config,
+                    cache_dir=LIVE_CACHE,
+                    contracts=replace(contracts, sources=sources),
+                )
+                for s in sources:
+                    fetch_source(live_config, self.root, s, url=self._contract_url(s))
+                self._report = build_report(live_config, self.root)
+                self._report_heads = heads
+            self._contracts_note = None
+        except FetchError as e:
+            if self._report is None:
+                raise
+            self._contracts_note = (
+                f"최신 {LIVE_BRANCH} 확인에 실패해 마지막으로 받은 커밋 기준으로 답한다 ({e})"
+            )
+
+    def _contract_url(self, source: Source) -> str:
+        return self.contract_urls.get(source.name) or github_url(source)
 
 
 def default_service(*, pinned: bool, via: str) -> KnowledgeService:

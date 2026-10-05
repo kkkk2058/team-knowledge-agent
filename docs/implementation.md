@@ -29,8 +29,8 @@ src/tka/
   core.py             search_docs(), get_decision()  ← 근거 찾기·글 만들기
   service.py          최신 main 따라가기 + 도구 호출 + 호출 로그  ← 입구가 같이 쓴다
   calllog.py          호출 로그 쓰기·읽기 (data/calls.jsonl)
-  cli.py              tka 명령: ask · search · decision · log  (얇은 껍데기)
-  mcp_server.py       MCP 도구: get_decision · search_docs  (얇은 껍데기)
+  cli.py              tka 명령: ask · search · decision · api · log  (얇은 껍데기)
+  mcp_server.py       MCP 도구: get_decision · search_docs · check_api  (얇은 껍데기)
 eval/
   golden.yaml              골든셋 (검사·확인 시트: src/tka/golden.py)
   drift_cases.yaml         모순 정답셋 후보
@@ -183,7 +183,12 @@ uv run python -m tka.contracts check --out eval/results/<날짜>-contracts/repor
   - "아무도 안 부름"에서 메서드를 모르는 호출은 같은 경로의 서버 엔드포인트를 모두 부를 수 있는 것으로 본다.
 - **한계**: 경로를 여러 개 적은 매핑은 첫 경로만, 블록 주석 안 매핑은 걸러내지 못한다. 요청·응답 필드는 보지 않는다(v2).
 - **결과 (2026-10-06, `eval/results/2026-10-06-contracts/report.md`)**: AI 명세 8 = 코드 8. BE는 FS-2 40개 중 14개 일치, 메서드 다름 1(장바구니 수량 `PATCH` ↔ `PUT`), 명세에만 25, 코드에만 19. 호출은 BE→AI 4개, FE→BE 26개 모두 서버에 있다. 모순 정답셋 #2(코드에만 있는 추천·검색 API)·#4(명세 대비 미구현)를 찾는다.
-- **다음**: MCP 도구(코딩 중 "이 API 명세랑 맞아?"), 최신 main 따라가기(⑧과 같은 방식).
+- **MCP 도구 `check_api`와 `tka api`** (2026-10-06, §4 #11): 코딩 중에 "이 경로·메서드가 명세와 맞나, 서버에 있나, 누가 부르나"를 묻는다.
+  - 엔드포인트 하나를 명세·서버 코드·호출 코드 한 묶음으로 돌려준다(`contracts/lookup.py`). 상태(일치·메서드 다름·명세에만·코드에만·서버에 없음)와 `레포/경로:줄@커밋`. 근거만 돌려준다(D17).
+  - 검색어가 `/`로 시작하면 경로(변수 자리는 아무 값, 그 아래 경로 포함), 아니면 경로나 명세 설명 낱말(예: "장바구니")로 찾는다. 비우면 어긋난 곳만 심한 순(서버에 없음 → 메서드 다름 → 명세에만 → 코드에만)으로.
+  - 메서드 필터는 명세·코드의 메서드로 건다. 메서드를 모르는 호출(래퍼 함수)은 같은 경로의 서버 엔드포인트 모두에 "메서드를 못 읽음"으로 붙인다. 대조표가 짝지은 하나에만 붙이면 DELETE 래퍼가 PUT 아래 나온다(처음 돌렸을 때 실제로 그랬다).
+  - 최신 main 따라가기는 결정 표와 같다(⑧): 네 레포 main을 10분마다 `git ls-remote`로 확인하고, 하나라도 바뀌면 `.cache/live/`에 받아 다시 만든다. 처음 부를 때 네 레포를 받느라 8~9초, 이후 0.2초 안팎. 확인에 실패하면 마지막 대조표로 답하고 알린다.
+  - 호출 로그에는 `commits`(레포별 커밋)를 남긴다. `tka log`에는 "N개 레포"로 보인다.
 
 ## 4. 구현 순서 — 한 줄이 PR 하나
 
