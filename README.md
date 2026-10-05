@@ -110,7 +110,7 @@ uv run python -m tka.evaluation summary eval/results/<run>
 
 ### 자동 생성 검증셋과 LLM 채점
 
-골든셋 20문항은 튜닝용이라, 넓이는 LLM이 만든 약 200문항(`eval/bigset.yaml`)으로 잰다. 만드는 모델과 채점 모델은 봇·베이스라인과 다른 계열이다(plan.md D18). dev는 틀린 이유를 보고 고쳐도 되고, test는 합계만 본다.
+골든셋 20문항은 튜닝용이라, 넓이는 LLM이 만든 검증셋(`eval/bigset.yaml`, 139문항)으로 잰다. 만드는 모델과 채점 모델은 봇·베이스라인과 다른 계열이다(plan.md D18). dev는 틀린 이유를 보고 고쳐도 되고, test는 합계만 본다.
 
 ```bash
 uv run python -m tka.bigset generate        # eval/bigset.yaml (이미 있으면 멈춘다)

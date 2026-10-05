@@ -43,8 +43,8 @@ from tka.evaluation import (
 from tka.golden import GoldenItem, load_golden
 from tka.ingest.files import read_lines
 
-MODEL = "openai/gpt-6.1-sol"
-TEMPERATURE = None  # OpenAI 모델은 temperature를 받지 않는다 (tka.answer.llm)
+MODEL = "openai/gpt-4o-mini"  # 실험 비용 한도 안에서 고른 다른 계열 모델 (2026-10-06)
+TEMPERATURE = 0
 WORKERS = 8
 CONTEXT_LINES = 2  # 근거 줄 앞뒤로 더 보여 줄 줄 수
 

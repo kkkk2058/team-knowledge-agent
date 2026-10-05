@@ -2,7 +2,9 @@
 
 북적북적 팀(KTB4-13th) 레포 5개(AI·BE·FE·CLOUD·wiki)의 문서와 코드를 근거로 팀 질문에 답하는 팀 전용 지식 에이전트.
 
-현재 단계: **v0 진행 중** — 구현 8단계 끝 (2026-09-30, 튜닝용 봇 90% vs 베이스라인 92%). 남은 것은 채점용 질문으로 재측정(plan.md §4 7단계). v0 범위 = wiki 레포 `docs/`만, 입구는 `tka` 명령과 본인 Claude Code의 MCP 도구.
+현재 단계: **v0 진행 중** — 구현 8단계 끝 (2026-09-30, 튜닝용 봇 90% vs 베이스라인 92%). 자동 생성 검증셋은 만들었지만 봇 실행·채점은 보류(채점 모델이 사람과 맞지 않음, implementation.md ⑥). v0 범위 = wiki 레포 `docs/`만, 입구는 `tka` 명령과 본인 Claude Code의 MCP 도구.
+
+**실험 비용**: LLM 실험은 한 번에 $3 이하로 쓰고, 넘을 것 같으면 돌리기 전에 예상 비용을 말하고 허락받는다. 생성·채점 모델은 `openai/gpt-4o-mini`가 기본이다.
 
 ## 먼저 읽을 문서
 
@@ -11,6 +13,7 @@
 - [docs/implementation.md](docs/implementation.md) — 기술 선택, 코드 구조, 테이블, 단계별 구현 방법·함정·완료 기준, PR 단위 구현 순서.
 - [docs/links.md](docs/links.md) — 소스 레포, 핵심 문서, 동기화 워크플로, 코드 위치, 관련 이슈·PR, 베이스라인, 구현 참고 자료, 조사 자료 링크 전부.
 - [eval/golden.yaml](eval/golden.yaml) — 골든셋. v0 20문항, wiki `4f6a6a6` 기준 근거 줄 포함. 정답은 레포 주인이 확인한다.
+- [eval/bigset.yaml](eval/bigset.yaml) — 자동 생성 검증셋 139문항(dev·test). 레포 주인 표본 확인 전.
 - [eval/drift_cases.yaml](eval/drift_cases.yaml) — 모순 정답셋 후보 8개 + 철회 1개.
 
 **소스 문서를 이 레포에 복사하지 않는다.** 같은 문서가 이미 5벌이다(context.md §3). 소스는 항상 원본 레포에서 가져온다.

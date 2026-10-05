@@ -38,8 +38,8 @@ from tka.index.keyword import tokenize_kiwi
 from tka.ingest.fetch import source_dir
 from tka.ingest.files import read_lines, select_files
 
-MODEL = "openai/gpt-6.1-sol"
-TEMPERATURE = None  # OpenAI 모델은 temperature를 받지 않는다 (tka.answer.llm)
+MODEL = "openai/gpt-4o-mini"  # 실험 비용 한도 안에서 고른 다른 계열 모델 (2026-10-06)
+TEMPERATURE = 0
 SEED = 20260930
 WINDOW_LINES = 30
 CHARS_PER_QUESTION = 2400  # 문서 39만 자 → 구절 질문 약 150개
