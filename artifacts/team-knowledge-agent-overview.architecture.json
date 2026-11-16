@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "team-knowledge-agent: 팀의 흩어진 지식을 근거로 답하는 도구",
+    "quality_profile": "showcase",
+    "viewBox": [1375, 720],
+    "repository": {
+      "url": "https://github.com/kkkk2058/team-knowledge-agent.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "fc9ba2330d30594f5dee0a6f246ceeca7773bc15"
+    },
+    "views": [
+      {
+        "id": "knowledge-path",
+        "label": "문서 질문 흐름",
+        "focus": ["source-repos", "ingest", "knowledge-index", "decision-table", "tools", "developer"],
+        "note": "여러 저장소의 문서를 정리해 검색하고, 결정 근거와 함께 답합니다."
+      },
+      {
+        "id": "contract-path",
+        "label": "API 대조 흐름",
+        "focus": ["source-repos", "contract-check", "tools", "developer"],
+        "note": "명세·서버·호출 코드를 규칙으로 비교해 불일치를 찾습니다."
+      },
+      {
+        "id": "safety",
+        "label": "신뢰 장치",
+        "focus": ["decision-table", "knowledge-index", "tools"],
+        "note": "최신 결정 우선, 실제 검색 근거만 인용, 근거가 없으면 모른다고 답합니다."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "source-repos",
+      "type": "external",
+      "label": "팀 소스 저장소 5개",
+      "sublabel": "wiki · AI · BE · FE · CLOUD",
+      "tag": "원본은 복사하지 않음",
+      "pos": [50, 285],
+      "size": [190, 86],
+      "sources": [{"path": "docs/context.md", "line": 20, "label": "소스 구조"}]
+    },
+    {
+      "id": "ingest",
+      "type": "backend",
+      "label": "가져오기·정리",
+      "sublabel": "선별 → 정규화 → 청킹",
+      "tag": "고정 커밋 / 최신 main",
+      "pos": [315, 285],
+      "size": [190, 86],
+      "sources": [{"path": "docs/implementation.md", "line": 56, "label": "인덱싱 단계"}]
+    },
+    {
+      "id": "decision-table",
+      "type": "database",
+      "label": "결정 표",
+      "sublabel": "현재 결정 · 폐기 · 대체 관계",
+      "tag": "결정 로그 우선",
+      "pos": [585, 110],
+      "size": [205, 86],
+      "sources": [{"path": "docs/implementation.md", "line": 79, "label": "결정 파서"}]
+    },
+    {
+      "id": "knowledge-index",
+      "type": "database",
+      "label": "하이브리드 검색 색인",
+      "sublabel": "키워드 + 벡터 + RRF 3:1",
+      "tag": "근거 조각 검색",
+      "pos": [585, 285],
+      "size": [205, 86],
+      "sources": [{"path": "docs/implementation.md", "line": 90, "label": "검색 방식"}]
+    },
+    {
+      "id": "contract-check",
+      "type": "security",
+      "label": "API 대조표",
+      "sublabel": "명세 ↔ 서버 ↔ 호출 코드",
+      "tag": "LLM 없이 규칙 비교",
+      "pos": [585, 460],
+      "size": [205, 86],
+      "sources": [{"path": "docs/implementation.md", "line": 164, "label": "API 대조"}]
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "TKA 도구",
+      "sublabel": "get_decision · search_docs · check_api",
+      "tag": "MCP + CLI",
+      "pos": [875, 285],
+      "size": [235, 86],
+      "sources": [{"path": "docs/implementation.md", "line": 150, "label": "MCP 도구"}]
+    },
+    {
+      "id": "developer",
+      "type": "frontend",
+      "label": "개발자와 Codex",
+      "sublabel": "질문 · 구현 전 확인 · 오류 조사",
+      "tag": "근거를 읽고 답 작성",
+      "pos": [1180, 285],
+      "size": [175, 86],
+      "sources": [{"path": "docs/plan.md", "line": 12, "label": "활용 시나리오"}]
+    }
+  ],
+  "connections": [
+    {"id": "repos-to-ingest", "from": "source-repos", "to": "ingest", "label": "허용된 문서·코드만 가져옴", "variant": "emphasis", "labelAt": [278, 385]},
+    {"id": "ingest-to-decisions", "from": "ingest", "to": "decision-table", "label": "결정 행 파싱", "fromSide": "right", "toSide": "left"},
+    {"id": "ingest-to-index", "from": "ingest", "to": "knowledge-index", "label": "문서 조각 색인", "variant": "emphasis", "labelAt": [625, 410]},
+    {"id": "ingest-to-contracts", "from": "ingest", "to": "contract-check", "label": "엔드포인트 추출", "fromSide": "right", "toSide": "left"},
+    {"id": "decisions-to-tools", "from": "decision-table", "to": "tools", "label": "현재 결정 + 근거", "fromSide": "right", "toSide": "top"},
+    {"id": "index-to-tools", "from": "knowledge-index", "to": "tools", "label": "검색 조각 + 인용", "variant": "emphasis"},
+    {"id": "contracts-to-tools", "from": "contract-check", "to": "tools", "label": "일치·불일치 + 위치", "fromSide": "right", "toSide": "bottom"},
+    {"id": "tools-to-developer", "from": "tools", "to": "developer", "label": "답이 아니라 검증 가능한 근거", "variant": "emphasis", "labelAt": [1145, 385]}
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "한마디로",
+      "items": ["팀의 문서와 코드를 찾아주는 전용 사서", "오래된 문서보다 최신 팀 결정을 우선"]
+    },
+    {
+      "dot": "emerald",
+      "title": "왜 필요한가",
+      "items": ["같은 정보가 여러 저장소와 문서에 흩어져 있음", "명세와 실제 코드가 달라질 수 있음"]
+    },
+    {
+      "dot": "violet",
+      "title": "믿을 수 있는 이유",
+      "items": ["모든 답에 파일·줄·커밋 근거를 붙임", "인용을 코드로 검증하고 근거가 없으면 모른다고 답함"]
+    },
+    {
+      "dot": "amber",
+      "title": "현재 범위",
+      "items": ["v0 문서 검색·결정 확인 완료", "v1 API 대조표와 check_api까지 구현"]
+    }
+  ]
+}
